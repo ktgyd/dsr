@@ -147,9 +147,9 @@ h1 { margin: 0; font-family: var(--f-display); font-weight: 900; text-transform:
 .rlist li small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rlist li b { font-family: var(--f-mono); font-weight: 600; font-variant-numeric: tabular-nums; }
 #villains { align-items: center; justify-content: center; background: rgba(5,7,10,.7); }
-#villains .panel { max-height: 100%; box-sizing: border-box; }
-.vlist { list-style: none; margin: 0; padding: 0 6px 0 0; display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: var(--amber) rgba(255,255,255,.1); }
-.vlist::-webkit-scrollbar { width: 6px; } .vlist::-webkit-scrollbar-track { background: rgba(255,255,255,.1); } .vlist::-webkit-scrollbar-thumb { background: var(--amber); }
+#villains .panel { max-height: 100%; box-sizing: border-box; width: min(100%, 540px); }
+.vlist { list-style: none; margin: 0; padding: 0 8px 0 0; display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; scrollbar-width: auto; scrollbar-color: var(--amber) rgba(255,255,255,.1); }
+.vlist::-webkit-scrollbar { width: 20px; } .vlist::-webkit-scrollbar-track { background: rgba(255,255,255,.12); border-radius: 10px; } .vlist::-webkit-scrollbar-thumb { background: var(--amber); border-radius: 10px; border: 4px solid rgba(20,22,26,.9); min-height: 56px; }
 .vlist img, .vlist .vt { grid-row: 1 / span 2; width: 60px; height: 75px; object-fit: contain; }
 .vhint { margin: 0; font-size: 11px; letter-spacing: .08em; color: var(--muted); }
 .vlist li { padding: 8px 10px; border: 1px solid var(--line); background: rgba(255,255,255,.04); display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; }
@@ -1665,11 +1665,12 @@ function zombieThumb(type) {
     const e = makeZombie(type, 0, 0, true);
     removeEnemy(e); e.root.remove(e.tag);
     e.limp = false; e.dragArm = false; e.leanOff = 0; e.tilt = 0; e.wob = 0; animZ(e, 0, false, 0);
-    e.root.position.set(0, 0, 0); e.root.rotation.y = 0.5; thumbScene.add(e.root); e.root.updateMatrixWorld(true);
+    e.root.position.set(0, 0, 0); e.root.rotation.y = 0.85; thumbScene.add(e.root); e.root.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(e.root), size = box.getSize(new THREE.Vector3()), ctr = box.getCenter(new THREE.Vector3());
     const tn = Math.tan(14 * Math.PI / 180), asp = THUMB_W / THUMB_H;
-    const dist = Math.max(size.y * 0.56 / tn, size.x * 0.56 / (tn * asp)) + size.z * 0.5;
-    thumbCam.position.set(ctr.x, ctr.y, ctr.z + dist); thumbCam.lookAt(ctr);
+    const fh = Math.max(size.y, 2.0), fw = Math.max(size.x, size.z, 1.1), cy = box.min.y + fh / 2; // common baseline: feet on the same line, so size differences stay visible
+    const dist = Math.max(fh * 0.56 / tn, fw * 0.56 / (tn * asp)) + size.z * 0.5;
+    thumbCam.position.set(ctr.x, cy, ctr.z + dist); thumbCam.lookAt(ctr.x, cy, ctr.z);
     const oc = new THREE.Color(); renderer.getClearColor(oc); const oa = renderer.getClearAlpha();
     renderer.setClearColor(0x000000, 0); renderer.setRenderTarget(thumbRT); renderer.render(thumbScene, thumbCam);
     const buf = new Uint8Array(THUMB_W * THUMB_H * 4); renderer.readRenderTargetPixels(thumbRT, 0, 0, THUMB_W, THUMB_H, buf);
