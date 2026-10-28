@@ -1,4 +1,4 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b0c0f"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Layout Sniper"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="icon-192.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>Layout Sniper</title>
 <style>
 /* Layout: full-bleed first-person view. Wave + score on the top edge, health bottom-left, ammo bottom-right, menu panel left. */
@@ -193,7 +193,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
     <h1>Layout<br>Sniper</h1>
     <p class="lede">The gates open every few minutes and the dead walk in. Hold the floor, stay lit, and count your magazines.</p>
     <div class="maps" id="maps" role="radiogroup" aria-label="Map"></div>
-    <div class="maps" id="sbOpts" role="radiogroup" aria-label="Sandbag layout" hidden></div>
+    <div class="maps" id="sbOpts" role="radiogroup" aria-label="Sandbag layout" style="visibility:hidden;pointer-events:none"></div>
     <div class="row"><button class="btn" id="go">Deploy</button><button class="btn ghost" id="rankBtn">Ranking</button></div>
     <ul class="keys">
       <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>Move</li>
@@ -1611,7 +1611,7 @@ const sbBox = $('sbOpts');
   sbBox.appendChild(b);
 });
 function markMap() {
-  sbBox.hidden = curMap !== 'sandbag';
+  { const on = curMap === 'sandbag'; sbBox.style.visibility = on ? 'visible' : 'hidden'; sbBox.style.pointerEvents = on ? 'auto' : 'none'; sbBox.setAttribute('aria-hidden', on ? 'false' : 'true'); } // always keeps its space so the menu never shifts
   for (const b of sbBox.children) { const on = b.dataset.id === sbLayout; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
   for (const b of mapBox.children) { const on = b.dataset.id === curMap; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
   $('kick').textContent = MAPS[curMap].name + (isTrain() ? ' \u00b7 practice, no score' : ' \u00b7 endless waves');
