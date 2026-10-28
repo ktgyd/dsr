@@ -1,6 +1,6 @@
 {
  "name": "Layout Sniper",
- "short_name": "Sniper",
+ "short_name": "Layout Sniper",
  "start_url": "./index.html",
  "scope": "./",
  "display": "standalone",
