@@ -126,6 +126,10 @@ h1 { margin: 0; font-family: var(--f-display); font-weight: 900; text-transform:
 .btn.ghost:hover { background: rgba(255,255,255,.1); }
 .row { display: flex; gap: 12px; flex-wrap: wrap; }
 #pbtn { position: fixed; z-index: 60; top: max(12px, env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; border: 1px solid rgba(255,255,255,.28); border-radius: 8px; background: rgba(8,10,14,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: .8; }
+#sbtn { position: fixed; z-index: 60; top: max(12px, env(safe-area-inset-top, 0px)); left: calc(max(12px, env(safe-area-inset-left, 0px)) + 46px); width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(255,255,255,.28); border-radius: 8px; background: rgba(8,10,14,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: .8; color: var(--ink); }
+#sbtn:hover, #sbtn:focus-visible { opacity: 1; border-color: var(--amber); outline: none; }
+#sbtn.on { color: var(--amber); }
+#sbtn svg { width: 20px; height: 20px; display: block; }
 #pbtn:hover, #pbtn:focus-visible { opacity: 1; border-color: var(--amber); outline: none; }
 #pbtn i { display: block; width: 4px; height: 14px; background: var(--ink); border-radius: 1px; }
 #pbtn.on i { width: 0; height: 0; background: none; border-radius: 0; border-left: 12px solid var(--amber); border-top: 8px solid transparent; border-bottom: 8px solid transparent; margin-left: 3px; }
@@ -154,6 +158,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
   <div class="ammo"><small id="wname">M4 RIFLE</small><div><b class="mono" id="mag">30</b><em class="mono" id="res">/ 120</em></div><div class="slots mono"><span id="s1" class="on">1 M4</span><span id="s2">2 PUMP</span><span id="s3">3 SNIPER</span><span id="s4">4 BLADE</span></div></div>
 </div>
 <button id="pbtn" type="button" aria-label="Pause" title="Pause (P)" hidden><i></i><i></i></button>
+<button id="sbtn" type="button" aria-label="Sound off" title="Sound (M)" hidden></button>
 <div id="xh" hidden><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
 <div id="hm"><i></i><i></i><i></i><i></i></div>
 <div id="dmg"></div>
@@ -592,9 +597,6 @@ function buildOffice() {
     }));
     // wall-mounted TVs on the lobby/office wall (2 per side = 4), facing the desks
     [-5, 5].forEach((tz) => { mk(new THREE.BoxGeometry(0.08, 0.9, 1.5), dark, s * 8.24, 2.2, tz, 0, false); mk(new THREE.BoxGeometry(0.02, 0.8, 1.4), new THREE.MeshBasicMaterial({ color: 0x3a78b8 }), s * 8.29, 2.2, tz, 0, false); });
-    // lockers along the outer wall
-    for (let z = -28; z <= 28; z += 1.2) B.add(s * 37.5, 1.0, z, 0.5, 2.0, 1.1, [0x6f7f78, 0x5f6f7a, 0x7a7f6a][(Math.abs(Math.round(z / 1.2))) % 3]);
-    addCol(s * 37.5, 0, 0.6, 58, 2);
   });
   B.build(stdMat({ color: 0xffffff, roughness: 0.8, envMapIntensity: 0.3 }), true);
   SC.build(new THREE.MeshBasicMaterial({ color: 0xffffff }), false);
@@ -783,7 +785,7 @@ const WEAPONS = [
 ];
 
 /* ---------------- audio ---------------- */
-let AC = null, master = null, noiseBuf = null, muted = false, windG = null;
+let AC = null, master = null, noiseBuf = null, muted = true, windG = null; // sound starts OFF; the speaker button next to pause turns it on
 function iosUnlock() {
   try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* ignore */ }
   try {
@@ -1386,7 +1388,7 @@ addEventListener('keydown', (e) => {
   if (state !== 'playing') { if (k === 'enter' && state === 'menu') startGame(); return; }
   if (k === 'p') { setPause(!paused); return; }
   if (k === 'r') startReload(); if (k === '1') swapTo(0); if (k === '2') swapTo(1); if (k === '3') swapTo(2); if (k === '4') swapTo(3);
-  if (k === 'f') { torchOn = !torchOn; torch.visible = torchOn; } if (k === 'm') { muted = !muted; if (master) master.gain.value = muted ? 0 : 0.7; }
+  if (k === 'f') { torchOn = !torchOn; torch.visible = torchOn; } if (k === 'm') { setMuted(!muted); }
 });
 addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseFire = false; mouseAds = false; });
@@ -1526,9 +1528,19 @@ function setPause(on) {
 $('pbtn').addEventListener('click', (e) => { e.preventDefault(); setPause(!paused); $('pbtn').blur(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) setPause(true); });
 let pbShown = null, pbOn = null;
+const ICON_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const ICON_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
+function setMuted(v) {
+  muted = !!v; if (!muted) initAudio();
+  if (master) master.gain.value = muted ? 0 : 0.7;
+  const b = $('sbtn'); b.innerHTML = muted ? ICON_OFF : ICON_ON; b.classList.toggle('on', !muted); b.setAttribute('aria-label', muted ? 'Sound off' : 'Sound on');
+  if (!muted) sndClick();
+}
+$('sbtn').addEventListener('click', (e) => { e.preventDefault(); setMuted(!muted); $('sbtn').blur(); });
+$('sbtn').innerHTML = ICON_OFF;
 function syncPauseBtn() {
   const show = state === 'playing', on = paused;
-  if (show !== pbShown) { pbShown = show; $('pbtn').hidden = !show; }
+  if (show !== pbShown) { pbShown = show; $('pbtn').hidden = !show; $('sbtn').hidden = !show; }
   if (on !== pbOn) { pbOn = on; $('pbtn').classList.toggle('on', on); $('pbtn').setAttribute('aria-label', on ? 'Resume' : 'Pause'); }
 }
 $('again').addEventListener('click', startGame);
