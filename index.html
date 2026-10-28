@@ -88,9 +88,9 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 .tb { position: fixed; width: 66px; height: 66px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-family: var(--f-display); font-weight: 800; font-size: 15px; letter-spacing: .06em; touch-action: none; }
 .tb.on { background: var(--amber); color: #140c00; }
 #bFire { right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(110px + env(safe-area-inset-bottom, 0px)); width: 84px; height: 84px; }
-#bJump { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 96px); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
-#bRel { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 96px); bottom: calc(172px + env(safe-area-inset-bottom, 0px)); }
-#bAds { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 96px); bottom: calc(248px + env(safe-area-inset-bottom, 0px)); }
+#bJump { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 114px); bottom: calc(102px + env(safe-area-inset-bottom, 0px)); }
+#bRel { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 96px); bottom: calc(178px + env(safe-area-inset-bottom, 0px)); }
+#bAds { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 96px); bottom: calc(254px + env(safe-area-inset-bottom, 0px)); }
 #bSwap { right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(206px + env(safe-area-inset-bottom, 0px)); }
 .touchmode #touch { display: block; }
 .touchmode #hud .ammo { bottom: auto; top: 96px; }
@@ -598,8 +598,8 @@ function buildOffice() {
       });
       addCol(px, pz, 8.6, 3.6, 1.5);
     }));
-    // wall-mounted TVs on the lobby/office wall (2 per side = 4), facing the desks
-    [-5, 5].forEach((tz) => { mk(new THREE.BoxGeometry(0.08, 0.9, 1.5), dark, s * 8.24, 2.2, tz, 0, false); mk(new THREE.BoxGeometry(0.02, 0.8, 1.4), new THREE.MeshBasicMaterial({ color: 0x3a78b8 }), s * 8.29, 2.2, tz, 0, false); });
+    // wall-mounted TVs on the outside of the core's side walls (2 per side = 4): beside meeting room N2 (z=-24) and the pantry/S2 wall (z=22), facing the desks
+    [-24, 22].forEach((tz) => { mk(new THREE.BoxGeometry(0.08, 0.9, 1.5), dark, s * 8.24, 2.2, tz, 0, false); mk(new THREE.BoxGeometry(0.02, 0.8, 1.4), new THREE.MeshBasicMaterial({ color: 0x3a78b8 }), s * 8.29, 2.2, tz, 0, false); });
   });
   B.build(stdMat({ color: 0xffffff, roughness: 0.8, envMapIntensity: 0.3 }), true);
   SC.build(new THREE.MeshBasicMaterial({ color: 0xffffff }), false);
@@ -1334,7 +1334,7 @@ function spawnOne() {
   let best = null, bd = -1; const opts = [];
   for (const g of GATES) { const d = Math.hypot(g[0] - P.x, g[1] - P.z); if (d > 22) opts.push(g); if (d > bd) { bd = d; best = g; } }
   const g = opts.length ? opts[(Math.random() * opts.length) | 0] : best;
-  const ty = pickType(); announce(ty);
+  const ty = pickType(); if (curMap !== 'office') announce(ty); // no "New: ..." popup on the DSR map
   const e = makeZombie(ty, g[0] + rand(-1.5, 1.5), g[1] + rand(-1.5, 1.5), false);
   pushOut(e, 0.5 * e.sc);
 }
