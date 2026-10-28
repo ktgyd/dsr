@@ -629,7 +629,7 @@ function buildTraining() {
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(XS * 2, ZS * 2), stdMat({ color: 0xd8d3c7, roughness: 1, envMapIntensity: 0.1 }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil);
   const B = new Batch(), LT = new Batch();
-  if (!sbLine()) [-1, 1].forEach((s) => { // no tables/chairs in the left-line layout
+  [-1, 1].filter((s) => !(sbLine() && s === -1)).forEach((s) => { // left-line layout: the zombie side (left) stays empty, the right side keeps its tables/chairs
     const tx = s * 5.2;
     mk(new THREE.BoxGeometry(1.6, 0.08, 20), wood, tx, 0.75, 2); mk(new THREE.BoxGeometry(1.0, 0.7, 18.6), dark, tx, 0.36, 2); addCol(tx, 2, 1.6, 20, 0.8);
     for (let i = 0; i < 9; i++) [-1, 1].forEach((k) => { const cx = tx + k * 1.25, cz = -6 + i * 2; B.add(cx, 0.48, cz, 0.5, 0.07, 0.5, 0x262a31); B.add(cx + k * 0.25, 0.8, cz, 0.07, 0.55, 0.48, 0x262a31); });
