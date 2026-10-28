@@ -1007,7 +1007,7 @@ TYPES.dongmin = Object.assign({}, TYPES.riot); // copy of riot: same stats and l
 TYPES.ybam = Object.assign({}, WALKER_BASE, { shrug: 0.22, lean: 0.14, hit: { head: [0, 1.63, 0.21], body: HUM.body } }); // walker with hugely raised shoulders
 TYPES.geobuk = Object.assign({}, WALKER_BASE, { hp: 75, speed: 1.9, score: 110, scale: 1.1, lean: 0.22, neck: 0.2, hit: { head: [0.2, 1.64, 0.21], body: HUM.body } }); // taller, forward-head (turtle neck)
 TYPES.jjiru = Object.assign({}, WALKER_BASE, { speed: 1.5, score: 120, lean: 0.2, legAmp: 0.32, knee: 0.45, bow: 0.3 }); // bow-legged, painful waddle
-TYPES.huru = Object.assign({}, WALKER_BASE, { whiteHead: true, bald: true, lightning: 0.2 }); // white head; 20% chance to be struck by lightning near the player (or on appearing in practice modes)
+TYPES.huru = Object.assign({}, WALKER_BASE, { whiteHead: true, bald: true, lightning: 0.5 }); // white head; 50% chance to be struck by lightning near the player (or on appearing in practice modes)
 const whiteHeadMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.7 });
 TYPES.huru.headSkin = whiteHeadMat; TYPES.judalgeun = Object.assign({}, WALKER_BASE); TYPES.opl = Object.assign({}, WALKER_BASE); // walker clones: only the names differ
 const MENU_TYPES = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin'];
@@ -1020,12 +1020,12 @@ function updatePools(dt) { for (const p of pools) { if (!p.m.visible) continue; 
 const acidGeo = new THREE.SphereGeometry(0.13, 10, 8), acidMat = new THREE.MeshBasicMaterial({ color: 0xb6ff3a, fog: false });
 const acidGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x7aff20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
 const seen = {};
-const INTRO = { runner: ['삼드', 'Fast and fragile'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['Spitters', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['Brute', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥민', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
+const INTRO = { runner: ['삼드', 'Fast and fragile'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['킥ㄱ우', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['리짜이밍', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥민', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
 function announce(t) { if (seen[t] || !INTRO[t]) return; seen[t] = 1; toast('New: ' + INTRO[t][0], INTRO[t][1], 2800); }
 function clearFx() { for (const p of projectiles) scene.remove(p.mesh); projectiles.length = 0; for (const p of pools) p.m.visible = false; for (const k in seen) delete seen[k]; }
 
 /* ---- name tags (temporary): edit the names / heights here ---- */
-const ZOMBIE_NAMES = { runner: '삼드', brute: 'BRUTE', crawler: '노시드', spitter: 'SPITTER', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: '주딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥민', ybam: 'Y뱀' };
+const ZOMBIE_NAMES = { runner: '삼드', brute: '리짜이밍', crawler: '노시드', spitter: '킥ㄱ우', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: '주딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥민', ybam: 'Y뱀' };
 const TAG_Y = { runner: 2.2, brute: 2.0, crawler: 1.15, spitter: 2.3, bloater: 2.05, riot: 2.25, mukking: 2.4, godu: 2.15, huru: 2.2, judalgeun: 2.2, opl: 2.2, jjiru: 2.1, geobuk: 2.3, johnson: 2.0, dongmin: 2.25, ybam: 2.15 }; // height above the feet (before the zombie's own scale)
 const tagMats = {};
 function tagMat(type) {
@@ -1215,19 +1215,25 @@ function fireWeapon() {
 }
 /* ---- lightning (huru): a bolt from the ceiling kills the zombie by itself ---- */
 const BOLTS = [];
-{ const g = new THREE.BoxGeometry(1, 1, 1); for (let i = 0; i < 24; i++) { const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xd8e8ff, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); m.visible = false; scene.add(m); BOLTS.push({ m: m, life: 0 }); } }
+{ const g = new THREE.BoxGeometry(1, 1, 1); for (let i = 0; i < 64; i++) { const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: 0xffd21e, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })); m.visible = false; scene.add(m); BOLTS.push({ m: m, life: 0 }); } }
 let boltI = 0, zapFlash = 0;
-function boltSeg(a, b, w) { const s = BOLTS[boltI++ % BOLTS.length]; s.m.position.copy(a).add(b).multiplyScalar(0.5); s.m.lookAt(b); s.m.scale.set(w, w, a.distanceTo(b)); s.life = 0.28; s.m.visible = true; }
+function boltSeg(a, b, w) { // thin = bright pale-yellow core, thick = yellow glow; segments are lengthened a little so bends have no gaps
+  const s = BOLTS[boltI++ % BOLTS.length]; s.m.material.color.setHex(w < 0.2 ? 0xfff6b0 : 0xffc400);
+  s.m.position.copy(a).add(b).multiplyScalar(0.5); s.m.lookAt(b); s.m.scale.set(w, w, a.distanceTo(b) + w * 0.9); s.life = 1.5; s.m.visible = true;
+}
 function lightningAt(x, z, hy) {
-  const top = 3.5, n = 7; let prev = new THREE.Vector3(x + rand(-0.4, 0.4), top, z + rand(-0.4, 0.4));
+  const top = 3.5, n = 9, x0 = rand(-0.7, 0.7), z0 = rand(-0.7, 0.7); let prev = new THREE.Vector3(x + x0, top, z + z0), side = Math.random() < 0.5 ? 1 : -1;
   for (let i = 1; i <= n; i++) {
-    const k = i / n, p = new THREE.Vector3(x + (i === n ? 0 : rand(-0.35, 0.35)), lerp(top, hy, k), z + (i === n ? 0 : rand(-0.35, 0.35)));
-    boltSeg(prev, p, 0.07); boltSeg(prev, p, 0.2); prev = p;
+    const k = i / n, f = 1 - k, last = i === n, j = last ? 0 : rand(0.12, 0.32) * (0.4 + f); side = -side; // alternate sides: a proper zig-zag that settles on the target
+    const p = new THREE.Vector3(x + x0 * f + (last ? 0 : side * j), lerp(top, hy, k), z + z0 * f + (last ? 0 : rand(-0.12, 0.12)));
+    boltSeg(prev, p, 0.14); boltSeg(prev, p, 0.4);
+    if (i === 4 || i === 6) { const q = new THREE.Vector3(p.x + side * rand(0.4, 0.8), p.y - rand(0.4, 0.7), p.z + rand(-0.3, 0.3)); boltSeg(p, q, 0.14); } // small fork
+    prev = p;
   }
 }
 function updateBolts(dt) {
-  for (const s of BOLTS) { if (!s.m.visible) continue; s.life -= dt; if (s.life <= 0) s.m.visible = false; else s.m.material.opacity = Math.min(1, s.life / 0.14); }
-  if (zapFlash > 0) { zapFlash = Math.max(0, zapFlash - dt * 4); $('zap').style.opacity = String(zapFlash); }
+  for (const s of BOLTS) { if (!s.m.visible) continue; s.life -= dt; if (s.life <= 0) s.m.visible = false; else s.m.material.opacity = Math.min(1, s.life / 0.75); }
+  if (zapFlash > 0) { zapFlash = Math.max(0, zapFlash - dt * 2.2); $('zap').style.opacity = String(zapFlash); }
 }
 function sndThunder(dist) { const v = clamp(1.1 - dist / 50, 0.25, 1); noise(2200, 0.25, 0.9 * v, 'highpass'); noise(380, 1.1, 1.0 * v); tone('sine', 90, 28, 0.9, 0.8 * v); }
 function zapKill(e) {
@@ -1438,7 +1444,7 @@ function updateEnemies(dt, t) {
       if (e.deadT > 6) removeEnemy(e); continue;
     }
     const dx = P.x - e.x, dz = P.z - e.z, dist = Math.hypot(dx, dz) || 1, range = cfg.crawl ? 1.1 : 0.7 + 0.45 * e.sc;
-    if (cfg.lightning && !e.zapRolled && !P.dead && dist < 4.2) { e.zapRolled = true; if (Math.random() < cfg.lightning) e.zapT = rand(0.35, 0.9); } // first close encounter: 20% chance
+    if (cfg.lightning && !e.zapRolled && !P.dead && dist < 4.2) { e.zapRolled = true; if (Math.random() < cfg.lightning) e.zapT = rand(0.35, 0.9); } // first close encounter: 50% chance
     e.stagger = Math.max(0, e.stagger - dt); e.attackCd -= dt; e.twitchT -= dt; if (e.twitchT < -0.01) e.twitchT = rand(2, 6); e.spitAnim = Math.max(0, e.spitAnim - dt);
     let ax = dx / dist, az = dz / dist, moving = false, hold = false, back = false, atk = 0;
     if (cfg.ranged && !P.dead && e.attackT <= 0 && dist < cfg.ranged.max && los(e)) {
@@ -1559,7 +1565,7 @@ function trainSpawn(i, avoid) {
   else do { ty = TRAIN_TYPES[(Math.random() * TRAIN_TYPES.length) | 0]; } while (ty === avoid || TR.list.some((z) => z && z.type === ty)); // no duplicate types among the 3 targets
   const e = makeZombie(ty, sl[0], sl[1], true); e.train = true; e.slot = i; e.hits = 0; e.rot = sl[2]; e.root.rotation.y = sl[2];
   if (!e.cfg.crawl) { const dy = 0.36, h = e.cfg.hit; e.cfg = Object.assign({}, e.cfg, { hit: { head: [h.head[0], h.head[1] - dy, h.head[2]], body: h.body.map((b) => [b[0], b[1] - dy, b[2]]) } }); e.kneel = true; e.tag.position.y -= dy / (e.cfg.sy || 1); }
-  if (e.cfg.lightning && Math.random() < e.cfg.lightning) e.zapT = rand(1.2, 3.2); // practice modes: 20% chance it gets struck shortly after appearing
+  if (e.cfg.lightning && Math.random() < e.cfg.lightning) e.zapT = rand(1.2, 3.2); // practice modes: 50% chance it gets struck shortly after appearing
   TR.list[i] = e; return e;
 }
 function trainFill() { TR.list.length = 0; TR.last.length = 0; const n = trainCount(); TR.t = new Array(n).fill(0); for (let i = 0; i < n; i++) trainSpawn(i); }
