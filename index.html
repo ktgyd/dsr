@@ -118,6 +118,7 @@ h1 { margin: 0; font-family: var(--f-display); font-weight: 900; text-transform:
 #err { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; background: var(--bg); line-height: 1.5; }
 @media (max-width: 600px) { .keys { display: none; } #menu { align-items: flex-end; background: linear-gradient(0deg, rgba(5,7,10,.92), rgba(5,7,10,.45) 60%, rgba(5,7,10,0)); } }
 .maps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#sbOpts { margin-top: 8px; }
 .mapb { cursor: pointer; text-align: left; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--ink); padding: 9px 12px; font-family: inherit; display: flex; flex-direction: column; gap: 2px; }
 .mapb b { font-family: var(--f-display); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 18px; line-height: 1.1; }
 .mapb small { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
@@ -192,6 +193,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
     <h1>Layout<br>Sniper</h1>
     <p class="lede">The gates open every few minutes and the dead walk in. Hold the floor, stay lit, and count your magazines.</p>
     <div class="maps" id="maps" role="radiogroup" aria-label="Map"></div>
+    <div class="maps" id="sbOpts" role="radiogroup" aria-label="Sandbag layout" hidden></div>
     <div class="row"><button class="btn" id="go">Deploy</button><button class="btn ghost" id="rankBtn">Ranking</button></div>
     <ul class="keys">
       <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>Move</li>
@@ -607,6 +609,14 @@ function buildOffice() {
 const TR = { pz: -2.5, slots: [[-2.6, -15.5], [0, -15.5], [2.6, -15.5]], list: [], last: [], t: [0, 0, 0] }, TRAIN_HITS = 5, TRAIN_DIST = 10; // Training Range: player-to-zombie distance in metres
 const isTrain = () => curMap === 'training' || curMap === 'sandbag', trainHits = () => curMap === 'sandbag' ? 8 : TRAIN_HITS;
 const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin'];
+let sbLayout = 'front'; // Sandbag layout: 'front' = 3 random targets ahead, 'line' = every zombie kneeling in a row along the left wall
+try { const sv = localStorage.getItem('layoutsniper.sbLayout'); if (sv === 'front' || sv === 'line') sbLayout = sv; } catch (e) { /* storage unavailable */ }
+const sbLine = () => curMap === 'sandbag' && sbLayout === 'line';
+const trainCount = () => sbLine() ? TRAIN_TYPES.length : 3;
+function trainSlot(i) { // -> [x, z, facing]
+  if (sbLine()) { const n = TRAIN_TYPES.length, z0 = -15.6, z1 = 15.6; return [-7.4, z0 + (z1 - z0) * i / (n - 1), Math.PI / 2]; } // left side, facing the room (+x)
+  return [TR.slots[i][0], curMap === 'sandbag' ? TR.slots[i][1] : TR.pz - TRAIN_DIST, 0];
+}
 function buildTraining() {
   const H = 3.6, XS = 9, ZS = 18;
   const wmat = (n) => { const t = officeWallTex.clone(); t.repeat.set(n, 1); t.needsUpdate = true; return stdMat({ map: t, emissiveMap: t, emissive: 0xffffff, emissiveIntensity: 0.4, envMapIntensity: 0.2 }); };
@@ -615,7 +625,7 @@ function buildTraining() {
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(XS * 2, ZS * 2), stdMat({ color: 0xd8d3c7, roughness: 1, envMapIntensity: 0.1 }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil);
   const B = new Batch(), LT = new Batch();
-  [-1, 1].forEach((s) => {
+  if (!sbLine()) [-1, 1].forEach((s) => { // no tables/chairs in the left-line layout
     const tx = s * 5.2;
     mk(new THREE.BoxGeometry(1.6, 0.08, 20), wood, tx, 0.75, 2); mk(new THREE.BoxGeometry(1.0, 0.7, 18.6), dark, tx, 0.36, 2); addCol(tx, 2, 1.6, 20, 0.8);
     for (let i = 0; i < 9; i++) [-1, 1].forEach((k) => { const cx = tx + k * 1.25, cz = -6 + i * 2; B.add(cx, 0.48, cz, 0.5, 0.07, 0.5, 0x262a31); B.add(cx + k * 0.25, 0.8, cz, 0.07, 0.55, 0.48, 0x262a31); });
@@ -1544,24 +1554,26 @@ function animKneel(e, t) {
   for (let i = 0; i < e.strips.length; i++) e.strips[i].rotation.x = Math.sin(t * 2 + i) * 0.1;
 }
 function trainSpawn(i, avoid) {
-  const sl = TR.slots[i]; let ty; do { ty = TRAIN_TYPES[(Math.random() * TRAIN_TYPES.length) | 0]; } while (ty === avoid || TR.list.some((z) => z && z.type === ty)); // no duplicate types among the 3 targets
-  const e = makeZombie(ty, sl[0], curMap === 'sandbag' ? sl[1] : TR.pz - TRAIN_DIST, true); e.train = true; e.slot = i; e.hits = 0; e.rot = 0; e.root.rotation.y = 0;
+  const sl = trainSlot(i); let ty;
+  if (sbLine()) ty = TRAIN_TYPES[i]; // line mode: one of every zombie, the same one comes back in its spot
+  else do { ty = TRAIN_TYPES[(Math.random() * TRAIN_TYPES.length) | 0]; } while (ty === avoid || TR.list.some((z) => z && z.type === ty)); // no duplicate types among the 3 targets
+  const e = makeZombie(ty, sl[0], sl[1], true); e.train = true; e.slot = i; e.hits = 0; e.rot = sl[2]; e.root.rotation.y = sl[2];
   if (!e.cfg.crawl) { const dy = 0.36, h = e.cfg.hit; e.cfg = Object.assign({}, e.cfg, { hit: { head: [h.head[0], h.head[1] - dy, h.head[2]], body: h.body.map((b) => [b[0], b[1] - dy, b[2]]) } }); e.kneel = true; e.tag.position.y -= dy / (e.cfg.sy || 1); }
   if (e.cfg.lightning && Math.random() < e.cfg.lightning) e.zapT = rand(1.2, 3.2); // practice modes: 20% chance it gets struck shortly after appearing
   TR.list[i] = e; return e;
 }
-function trainFill() { TR.list.length = 0; TR.last.length = 0; TR.t = [0, 0, 0]; for (let i = 0; i < 3; i++) trainSpawn(i); }
+function trainFill() { TR.list.length = 0; TR.last.length = 0; const n = trainCount(); TR.t = new Array(n).fill(0); for (let i = 0; i < n; i++) trainSpawn(i); }
 function trainSwap(e) {
   const i = e.slot; blood(new THREE.Vector3(e.x, 1.0, e.z), 14, true, 0x7a0d0d); sndDie(Math.hypot(e.x - P.x, e.z - P.z), 0);
   TR.last[i] = e.type; removeEnemy(e); TR.list[i] = null; TR.t[i] = 0.7;
 }
 function updateTraining(dt) {
   WEAPONS.forEach((w) => { if (w.cap) w.reserve = w.cap; });
-  for (let i = 0; i < 3; i++) { if (TR.list[i]) continue; TR.t[i] -= dt; if (TR.t[i] <= 0) trainSpawn(i, TR.last[i]); }
+  for (let i = 0, n = trainCount(); i < n; i++) { if (TR.list[i]) continue; TR.t[i] -= dt; if (TR.t[i] <= 0) trainSpawn(i, TR.last[i]); }
 }
 function startTraining() {
   Object.assign(P, { x: 0, z: curMap === 'sandbag' ? 2 : TR.pz, yaw: 0, pitch: 0 }); trainFill();
-  if (curMap === 'sandbag') { cur = 4; toast('Sandbag Mode', 'No score \u00b7 walk up and punch (key 5 = fists) \u00b7 targets swap after a few hits', 3600); }
+  if (curMap === 'sandbag') { cur = 4; toast('Sandbag Mode', (sbLine() ? 'All zombies lined up on the left \u00b7 ' : '') + 'No score \u00b7 walk up and punch (key 5 = fists) \u00b7 targets swap after a few hits', 3600); }
   else toast('Training Range', 'No score \u00b7 you cannot move \u00b7 targets swap after a few hits', 3400);
 }
 function startGame() {
@@ -1591,7 +1603,16 @@ Object.keys(MAPS).forEach((id) => {
   b.innerHTML = '<b>' + MAPS[id].name + '</b><small>' + MAPS[id].tag + '</small>';
   b.addEventListener('click', () => selectMap(id)); mapBox.appendChild(b);
 });
+const sbBox = $('sbOpts');
+[['front', '\uc55e\ucabd 3\ub9c8\ub9ac \ub79c\ub364', 'Front \u00b7 3 random zombies ahead'], ['line', '\uc67c\ucabd \uc77c\ub82c \uc804\uccb4', 'Left wall \u00b7 every zombie in a row']].forEach((o) => {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'mapb'; b.dataset.id = o[0]; b.setAttribute('role', 'radio');
+  b.innerHTML = '<b>' + o[1] + '</b><small>' + o[2] + '</small>';
+  b.addEventListener('click', () => { if (state === 'playing') return; sbLayout = o[0]; try { localStorage.setItem('layoutsniper.sbLayout', sbLayout); } catch (e) { /* ignore */ } loadMap(curMap); menuScene(); markMap(); });
+  sbBox.appendChild(b);
+});
 function markMap() {
+  sbBox.hidden = curMap !== 'sandbag';
+  for (const b of sbBox.children) { const on = b.dataset.id === sbLayout; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
   for (const b of mapBox.children) { const on = b.dataset.id === curMap; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
   $('kick').textContent = MAPS[curMap].name + (isTrain() ? ' \u00b7 practice, no score' : ' \u00b7 endless waves');
 }
