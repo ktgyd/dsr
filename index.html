@@ -95,6 +95,9 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 .touchmode #touch { display: block; }
 .touchmode #hud .ammo { bottom: auto; top: 96px; }
 .touchmode #hud .hp { bottom: auto; top: 0; width: 180px; }
+#mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: max(14px, env(safe-area-inset-top, 0px)); width: 112px; height: auto; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.35); display: none; pointer-events: none; }
+#mm.on { display: block; }
+.touchmode #mm { top: calc(max(14px, env(safe-area-inset-top, 0px)) + 94px); width: 92px; }
 .touchmode #hint, .touchmode #xh .t, .touchmode #xh .b { display: none; }
 
 /* screens */
@@ -166,6 +169,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 
 <div id="hud" class="fill inset" hidden>
   <div class="top"><div class="score"><small>SCORE</small><b class="mono" id="score">0</b></div></div>
+  <canvas id="mm" width="152" height="176"></canvas>
   <div class="wave"><small>WAVE</small><b id="wave">1</b><span id="left">0 LEFT</span></div>
   <div class="hp"><small>HEALTH</small><b class="mono" id="hp">100</b><div id="hpbar"><i id="hpfill"></i></div></div>
   <div class="ammo"><small id="wname">M4 RIFLE</small><div><b class="mono" id="mag">30</b><em class="mono" id="res">/ 120</em></div><div class="slots mono"><span id="s1" class="on">1 M4</span><span id="s2">2 PUMP</span><span id="s3">3 SNIPER</span><span id="s4">4 BLADE</span><span id="s5" hidden>5 FISTS</span></div></div>
@@ -1830,6 +1834,23 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 const cache = {}; function setT(id, v) { if (cache[id] !== v) { cache[id] = v; $(id).textContent = v; } }
+const MM = { c: null, g: null, t: 0 };
+function drawMinimap(dt) { // DSR 19th floor only: green = you (triangle = facing), red = zombies, top = start direction
+  if (!MM.c) { MM.c = $('mm'); MM.g = MM.c.getContext('2d'); }
+  const show = curMap === 'office' && state === 'playing';
+  if (MM.c.classList.contains('on') !== show) MM.c.classList.toggle('on', show);
+  if (!show) return;
+  MM.t -= dt; if (MM.t > 0) return; MM.t = 0.05;
+  const g = MM.g, W = MM.c.width, H = MM.c.height, XS = 38, ZS = HALF, X = (x) => (x + XS) / (XS * 2) * W, Z = (z) => (z + ZS) / (ZS * 2) * H;
+  g.clearRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(X(-8), 0, X(8) - X(-8), H); // lobby strip
+  g.fillStyle = 'rgba(255,60,40,.45)'; for (const q of GATES) g.fillRect(X(q[0]) - 3, Z(q[1]) - 3, 6, 6); // spawn doors
+  g.fillStyle = '#ff2d2d'; g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1;
+  for (const e of enemies) { if (e.dead || e.idle) continue; g.beginPath(); g.arc(X(e.x), Z(e.z), 3.4, 0, TAU); g.fill(); g.stroke(); }
+  const px = X(clamp(P.x, -XS, XS)), pz = Z(clamp(P.z, -ZS, ZS)), fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+  g.fillStyle = '#3dff7a'; g.strokeStyle = '#06210f'; g.lineWidth = 1.5;
+  g.beginPath(); g.moveTo(px + fx * 8, pz + fz * 8); g.lineTo(px - fx * 4 - fz * 5, pz - fz * 4 + fx * 5); g.lineTo(px - fx * 4 + fz * 5, pz - fz * 4 - fx * 5); g.closePath(); g.fill(); g.stroke();
+}
 function updateHud() {
   const w = WEAPONS[cur];
   setT('score', String(S.score)); setT('wave', String(Math.max(1, W.n)));
@@ -1869,7 +1890,7 @@ function frame(now) {
   if (state === 'playing' && !paused) {
     const low = P.hp <= 30 ? 0.3 + 0.12 * Math.sin(elapsed * 6) : 0;
     $('dmg').style.opacity = String(Math.max(dmgFlash * 0.9, low));
-    updateHud();
+    updateHud(); drawMinimap(dt);
   }
 
   syncPauseBtn();
