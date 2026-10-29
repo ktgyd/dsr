@@ -254,7 +254,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
     <div class="mbody">
     <div class="maps" id="maps" role="radiogroup" aria-label="Map"></div>
     <div class="maps" id="sbOpts" role="radiogroup" aria-label="Sandbag layout" style="visibility:hidden;pointer-events:none"></div>
-    <div class="row"><button class="btn" id="go">Deploy</button><button class="btn ghost" id="rankBtn">Ranking</button><button class="btn ghost" id="loadBtn" hidden>Load</button></div>
+    <div class="row"><button class="btn" id="go">Deploy</button><button class="btn ghost" id="rankBtn">Ranking</button><button class="btn ghost" id="loadBtn" hidden>Load</button><button class="btn ghost" id="loadBtn2" hidden>Previous</button></div>
     <ul class="keys">
       <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>Move</li>
       <li><kbd>Mouse</kbd>Aim &middot; fire &middot; slash</li>
@@ -270,7 +270,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 </section>
 
 <section id="pause" class="screen inset" hidden>
-  <div class="panel card"><p class="kicker">Paused</p><h1 style="font-size:clamp(48px,10vw,84px)">Hold up</h1><div class="row"><button class="btn" id="resume">Resume</button><button class="btn ghost" id="pSave">Save</button><button class="btn ghost" id="pLoad" hidden>Load</button><button class="btn ghost" id="quit">Quit</button></div></div>
+  <div class="panel card"><p class="kicker">Paused</p><h1 style="font-size:clamp(48px,10vw,84px)">Hold up</h1><div class="row"><button class="btn" id="resume">Resume</button><button class="btn ghost" id="pSave">Save</button><button class="btn ghost" id="pLoad" hidden>Load</button><button class="btn ghost" id="pLoad2" hidden>Previous</button><button class="btn ghost" id="quit">Quit</button></div></div>
 </section>
 
 <section id="rank" class="screen inset" hidden>
@@ -1989,12 +1989,13 @@ function toMenu() {
 $('toMenu').addEventListener('click', toMenu);
 
 /* ---------------- save / load: a DSR 19th Floor run (wave, score, health, ammo, position, living zombies) ---------------- */
-const SAVE_KEY = 'layoutsniper.save1';
-function readSave() { try { const j = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return j && j.v === 1 && j.map === 'office' && j.W && j.P && j.S ? j : null; } catch (err) { return null; } }
+const SAVE_KEY = 'layoutsniper.save1', SAVE_KEY2 = 'layoutsniper.save2'; // two slots: 1 = newest save, 2 = the one saved before it
+function readSave(slot) { try { const j = JSON.parse(localStorage.getItem(slot === 2 ? SAVE_KEY2 : SAVE_KEY) || 'null'); return j && j.v === 1 && j.map === 'office' && j.W && j.P && j.S ? j : null; } catch (err) { return null; } }
 function refreshLoadBtn() {
-  const d = readSave(), b = $('loadBtn');
-  b.hidden = !d; if (d) b.textContent = 'Load \u00b7 Wave ' + d.W.n;
-  $('pLoad').hidden = !d; $('pSave').hidden = curMap !== 'office';
+  const set = (id, d, label) => { const b = $(id); b.hidden = !d; if (d) { b.textContent = label + ' \u00b7 Wave ' + d.W.n; try { b.title = new Date(d.t).toLocaleString(); } catch (err) { /* ignore */ } } };
+  const d1 = readSave(1), d2 = readSave(2);
+  set('loadBtn', d1, 'Load'); set('loadBtn2', d2, 'Previous'); set('pLoad', d1, 'Load'); set('pLoad2', d2, 'Previous');
+  $('pSave').hidden = curMap !== 'office';
 }
 function saveGame() {
   if (state !== 'playing' || curMap !== 'office' || P.dead) { toast('Save', 'Only during a DSR 19th Floor run', 1800); return false; }
@@ -2004,13 +2005,19 @@ function saveGame() {
     P: { x: P.x, z: P.z, yaw: P.yaw, pitch: P.pitch, hp: P.hp },
     wp: WEAPONS.map((w) => [w.mag, w.reserve]),
     en: enemies.filter((e) => !e.dead && !e.idle).map((e) => [e.type, +e.x.toFixed(2), +e.z.toFixed(2), Math.round(e.hp)]) };
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (err) { toast('Save failed', 'Storage is not available here', 2400); return false; }
+  try {
+    // saving pushes the newest save to the "Previous" slot, so an older save is never overwritten by accident;
+    // a save at the very same progress (e.g. a double tap) just replaces the newest one instead of pushing it out
+    const raw = localStorage.getItem(SAVE_KEY), old = readSave(1);
+    if (raw && old && !(old.W.n === d.W.n && old.S.score === d.S.score && old.S.kills === d.S.kills)) localStorage.setItem(SAVE_KEY2, raw);
+    localStorage.setItem(SAVE_KEY, JSON.stringify(d));
+  } catch (err) { toast('Save failed', 'Storage is not available here', 2400); return false; }
   refreshLoadBtn(); toast('Game saved', 'Wave ' + W.n + ' &middot; score ' + S.score, 1800);
   const vb = $('vbtn'); vb.classList.add('flash'); setTimeout(() => vb.classList.remove('flash'), 600);
   return true;
 }
-function loadGame() {
-  const d = readSave(); if (!d) { toast('Load', 'No saved game yet', 1800); return false; }
+function loadGame(slot) {
+  const d = readSave(slot); if (!d) { toast('Load', 'No saved game yet', 1800); return false; }
   initAudio();
   if (curMap !== 'office') { loadMap('office'); try { localStorage.setItem('layoutsniper.map2', 'office'); } catch (err) { /* ignore */ } markMap(); }
   clearEnemies(); NADES.forEach((n) => scene.remove(n.m)); NADES.length = 0;
@@ -2030,8 +2037,10 @@ function loadGame() {
 }
 $('vbtn').addEventListener('click', (e) => { e.preventDefault(); saveGame(); $('vbtn').blur(); });
 $('pSave').addEventListener('click', (e) => { e.preventDefault(); saveGame(); });
-$('pLoad').addEventListener('click', (e) => { e.preventDefault(); loadGame(); });
-$('loadBtn').addEventListener('click', (e) => { e.preventDefault(); loadGame(); });
+$('pLoad').addEventListener('click', (e) => { e.preventDefault(); loadGame(1); });
+$('pLoad2').addEventListener('click', (e) => { e.preventDefault(); loadGame(2); });
+$('loadBtn').addEventListener('click', (e) => { e.preventDefault(); loadGame(1); });
+$('loadBtn2').addEventListener('click', (e) => { e.preventDefault(); loadGame(2); });
 refreshLoadBtn();
 /* ---- scores (this device only: nothing is ever sent anywhere) ---- */
 let scores = [], lastEntry = null, rankOpen = false, runSaved = false;
