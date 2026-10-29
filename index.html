@@ -1747,10 +1747,18 @@ $('resume').addEventListener('click', () => { if (noLock) { paused = false; $('p
   const jend = (e) => { if (e.pointerId !== jid) return; jid = null; joy.x = joy.y = joy.mag = 0; joyEl.style.display = 'none'; knob.style.transform = ''; };
   $('tzL').addEventListener('pointerup', jend); $('tzL').addEventListener('pointercancel', jend);
   $('tzR').addEventListener('pointerdown', (e) => { lid = e.pointerId; lx = e.clientX; ly = e.clientY; e.target.setPointerCapture(e.pointerId); });
-  $('tzR').addEventListener('pointermove', (e) => { if (e.pointerId !== lid || state !== 'playing') return; P.yaw -= (e.clientX - lx) * 0.0045 * clamp(camera.fov / 76, 0.1, 1); P.pitch = clamp(P.pitch - (e.clientY - ly) * 0.0045 * clamp(camera.fov / 76, 0.1, 1), -1.45, 1.45); lx = e.clientX; ly = e.clientY; });
+  const look = (dx, dy) => { const k = 0.0045 * clamp(camera.fov / 76, 0.1, 1); P.yaw -= dx * k; P.pitch = clamp(P.pitch - dy * k, -1.45, 1.45); };
+  $('tzR').addEventListener('pointermove', (e) => { if (e.pointerId !== lid || state !== 'playing') return; look(e.clientX - lx, e.clientY - ly); lx = e.clientX; ly = e.clientY; });
   const lend = (e) => { if (e.pointerId === lid) lid = null; };
   $('tzR').addEventListener('pointerup', lend); $('tzR').addEventListener('pointercancel', lend);
   const hold = (id, fn) => { const el = $(id); el.addEventListener('pointerdown', (e) => { e.preventDefault(); el.classList.add('on'); fn(1); }); const up = (e) => { el.classList.remove('on'); fn(0); }; el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up); el.addEventListener('pointerleave', up); };
+  { // the FIRE button keeps firing while the same finger slides: dragging on it also aims
+    const fb = $('bFire'); let fid = null, fx = 0, fy = 0;
+    fb.addEventListener('pointerdown', (e) => { fid = e.pointerId; fx = e.clientX; fy = e.clientY; try { fb.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ } });
+    fb.addEventListener('pointermove', (e) => { if (e.pointerId !== fid || state !== 'playing') return; look(e.clientX - fx, e.clientY - fy); fx = e.clientX; fy = e.clientY; });
+    const fe = (e) => { if (e.pointerId === fid) fid = null; };
+    fb.addEventListener('pointerup', fe); fb.addEventListener('pointercancel', fe);
+  }
   hold('bFire', (v) => { tch.fire = v; if (v) fireQueued = true; }); hold('bJump', (v) => { tch.jump = v; });
   hold('bRel', (v) => { if (v && state === 'playing') startReload(); }); hold('bSwap', (v) => { if (v && state === 'playing') swapTo(nextW()); });
   $('bAds').addEventListener('pointerdown', (e) => { e.preventDefault(); mouseAds = !mouseAds; $('bAds').classList.toggle('on', mouseAds); });
