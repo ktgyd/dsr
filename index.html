@@ -1045,6 +1045,7 @@ function sndHurt() { tone('sawtooth', 130, 55, 0.3, 0.45); noise(500, 0.25, 0.5)
 function sndHit(head) { tone('sine', head ? 1700 : 1100, head ? 1200 : 800, 0.07, head ? 0.3 : 0.2); }
 function sndPickup() { tone('sine', 700, 900, 0.08, 0.2); setTimeout(() => tone('sine', 1000, 1300, 0.1, 0.2), 70); }
 function sndGroan(dist, pan, type) {
+  return; // zombie groans are switched off
   const v = clamp(1 - dist / 38, 0.05, 1) * 0.28;
   if (type === 'runner') tone('sawtooth', 240 + rand(-20, 20), 140, 0.5, v * 0.9, pan);
   else if (type === 'crawler') { tone('square', 130, 90, 0.6, v * 0.6, pan); noise(900, 0.3, v * 0.5, 'bandpass'); }
