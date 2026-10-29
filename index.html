@@ -44,8 +44,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 #hpbar { height: 8px; background: rgba(255,255,255,.14); margin-top: 6px; overflow: hidden; }
 #hpbar i { display: block; height: 100%; width: 100%; background: var(--amber); transition: width .15s linear, background-color .2s; }
 #hpbar.low i { background: var(--red); }
-#hud .lv { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; letter-spacing: .14em; color: var(--muted); text-shadow: 0 1px 6px rgba(0,0,0,.7); }
-#xpbar { flex: 1; height: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
+#hud .lv { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 13px; letter-spacing: .14em; color: #fff; font-weight: 800; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 6px rgba(0,0,0,.9); }
+#xpbar { flex: 1; height: 4px; background: rgba(0,0,0,.55); box-shadow: 0 0 0 1px rgba(255,255,255,.45); overflow: hidden; }
 #xpbar i { display: block; height: 100%; width: 0; background: #6fd0ff; }
 #hud .ammo { position: absolute; right: 0; bottom: 0; padding: inherit; text-align: right; text-shadow: 0 2px 12px rgba(0,0,0,.7); }
 #hud .ammo b { font-size: clamp(44px, 7vw, 72px); line-height: 1; }
