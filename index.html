@@ -181,6 +181,9 @@ body:has(#menu:not([hidden])) #touch { display: none !important; } /* on-screen 
 #pbtn { position: fixed; z-index: 60; top: max(12px, env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; border: 1px solid rgba(255,255,255,.28); border-radius: 8px; background: rgba(8,10,14,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: .8; }
 #sbtn { position: fixed; z-index: 60; top: max(12px, env(safe-area-inset-top, 0px)); left: calc(max(12px, env(safe-area-inset-left, 0px)) + 46px); width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(255,255,255,.28); border-radius: 8px; background: rgba(8,10,14,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: .8; color: var(--ink); }
 #sbtn:hover, #sbtn:focus-visible { opacity: 1; border-color: var(--amber); outline: none; }
+#vbtn { position: fixed; z-index: 60; top: max(12px, env(safe-area-inset-top, 0px)); left: calc(max(12px, env(safe-area-inset-left, 0px)) + 92px); width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid rgba(255,255,255,.28); border-radius: 8px; background: rgba(8,10,14,.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); opacity: .8; color: var(--ink); }
+#vbtn:hover, #vbtn:focus-visible, #vbtn.flash { opacity: 1; border-color: var(--amber); color: var(--amber); outline: none; }
+#vbtn svg { width: 20px; height: 20px; display: block; }
 #sbtn.on { color: var(--amber); }
 #sbtn svg { width: 20px; height: 20px; display: block; }
 #pbtn:hover, #pbtn:focus-visible { opacity: 1; border-color: var(--amber); outline: none; }
@@ -223,6 +226,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 </div>
 <button id="pbtn" type="button" aria-label="Pause" title="Pause (P)" hidden><i></i><i></i></button>
 <button id="sbtn" type="button" aria-label="Sound off" title="Sound (M)" hidden></button>
+<button id="vbtn" type="button" aria-label="Save game" title="Save game (DSR 19th Floor)" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 4h13l3 3v13H4z"/><path d="M8 4v6h8V4"/><rect x="7" y="14" width="10" height="6"/></svg></button>
 <div id="xh" hidden><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="d"></i></div>
 <div id="hm"><i></i><i></i><i></i><i></i></div>
 <div id="dmg"></div>
@@ -248,7 +252,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
     <div class="mbody">
     <div class="maps" id="maps" role="radiogroup" aria-label="Map"></div>
     <div class="maps" id="sbOpts" role="radiogroup" aria-label="Sandbag layout" style="visibility:hidden;pointer-events:none"></div>
-    <div class="row"><button class="btn" id="go">Deploy</button><button class="btn ghost" id="rankBtn">Ranking</button></div>
+    <div class="row"><button class="btn" id="go">Deploy</button><button class="btn ghost" id="rankBtn">Ranking</button><button class="btn ghost" id="loadBtn" hidden>Load</button></div>
     <ul class="keys">
       <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd>Move</li>
       <li><kbd>Mouse</kbd>Aim &middot; fire &middot; slash</li>
@@ -264,7 +268,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 </section>
 
 <section id="pause" class="screen inset" hidden>
-  <div class="panel card"><p class="kicker">Paused</p><h1 style="font-size:clamp(48px,10vw,84px)">Hold up</h1><div class="row"><button class="btn" id="resume">Resume</button><button class="btn ghost" id="quit">Quit</button></div></div>
+  <div class="panel card"><p class="kicker">Paused</p><h1 style="font-size:clamp(48px,10vw,84px)">Hold up</h1><div class="row"><button class="btn" id="resume">Resume</button><button class="btn ghost" id="pSave">Save</button><button class="btn ghost" id="pLoad" hidden>Load</button><button class="btn ghost" id="quit">Quit</button></div></div>
 </section>
 
 <section id="rank" class="screen inset" hidden>
@@ -1978,9 +1982,55 @@ function toMenu() {
   state = 'menu'; paused = false; mouseFire = false; mouseAds = false;
   $('over').hidden = true; $('pause').hidden = true; $('hud').hidden = true; $('xh').hidden = true; $('hint').hidden = true; $('menu').hidden = false;
   if (document.pointerLockElement) document.exitPointerLock();
-  menuScene(); markMap();
+  menuScene(); markMap(); refreshLoadBtn();
 }
 $('toMenu').addEventListener('click', toMenu);
+
+/* ---------------- save / load: a DSR 19th Floor run (wave, score, health, ammo, position, living zombies) ---------------- */
+const SAVE_KEY = 'layoutsniper.save1';
+function readSave() { try { const j = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return j && j.v === 1 && j.map === 'office' && j.W && j.P && j.S ? j : null; } catch (err) { return null; } }
+function refreshLoadBtn() {
+  const d = readSave(), b = $('loadBtn');
+  b.hidden = !d; if (d) b.textContent = 'Load \u00b7 Wave ' + d.W.n;
+  $('pLoad').hidden = !d; $('pSave').hidden = curMap !== 'office';
+}
+function saveGame() {
+  if (state !== 'playing' || curMap !== 'office' || P.dead) { toast('Save', 'Only during a DSR 19th Floor run', 1800); return false; }
+  const d = { v: 1, map: 'office', t: Date.now(), cur: cur,
+    W: { n: W.n, toSpawn: W.toSpawn, state: W.state, breakT: W.breakT, spawnT: W.spawnT, queue: (W.queue || []).slice() },
+    S: { score: S.score, kills: S.kills, heads: S.heads, shots: S.shots, hits: S.hits },
+    P: { x: P.x, z: P.z, yaw: P.yaw, pitch: P.pitch, hp: P.hp },
+    wp: WEAPONS.map((w) => [w.mag, w.reserve]),
+    en: enemies.filter((e) => !e.dead && !e.idle).map((e) => [e.type, +e.x.toFixed(2), +e.z.toFixed(2), Math.round(e.hp)]) };
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(d)); } catch (err) { toast('Save failed', 'Storage is not available here', 2400); return false; }
+  refreshLoadBtn(); toast('Game saved', 'Wave ' + W.n + ' &middot; score ' + S.score, 1800);
+  const vb = $('vbtn'); vb.classList.add('flash'); setTimeout(() => vb.classList.remove('flash'), 600);
+  return true;
+}
+function loadGame() {
+  const d = readSave(); if (!d) { toast('Load', 'No saved game yet', 1800); return false; }
+  initAudio();
+  if (curMap !== 'office') { loadMap('office'); try { localStorage.setItem('layoutsniper.map2', 'office'); } catch (err) { /* ignore */ } markMap(); }
+  clearEnemies(); NADES.forEach((n) => scene.remove(n.m)); NADES.length = 0;
+  const lim = (v, hi) => Math.max(0, Math.min(Number.isFinite(hi) ? hi : 1e9, (+v) | 0));
+  WEAPONS.forEach((w, i) => { const q = d.wp && d.wp[i]; w.mag = q ? lim(q[0], w.magMax) : w.magMax; w.reserve = q ? lim(q[1], w.cap) : w.res0; });
+  Object.assign(P, { x: +d.P.x || 0, z: +d.P.z || 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: +d.P.yaw || 0, pitch: clamp(+d.P.pitch || 0, -1.45, 1.45), hp: clamp(+d.P.hp || 100, 1, 100), dead: false, ground: true, kickP: 0, shake: 0, speed: 0 });
+  Object.assign(S, { score: d.S.score | 0, kills: d.S.kills | 0, heads: d.S.heads | 0, shots: d.S.shots | 0, hits: d.S.hits | 0 });
+  cur = d.cur >= 0 && d.cur < WEAPONS.length ? d.cur | 0 : 0; fireT = 0.4; reloadT = 0; swapT = 0.4; bloom = 0; kick = 0; dmgFlash = 0;
+  Object.assign(W, { n: d.W.n | 0 || 1, toSpawn: d.W.toSpawn | 0, state: d.W.state === 'break' ? 'break' : 'active', breakT: +d.W.breakT || 0, spawnT: Math.max(1.2, +d.W.spawnT || 0), queue: Array.isArray(d.W.queue) ? d.W.queue.filter((t) => TYPES[t]) : waveQueue() });
+  state = 'playing'; paused = false; mouseFire = false; mouseAds = false;
+  closeRank(); runSaved = false; $('menu').hidden = true; $('over').hidden = true; $('pause').hidden = true; $('hud').hidden = false; $('xh').hidden = false;
+  (d.en || []).forEach((q) => { if (!TYPES[q[0]]) return; const e = makeZombie(q[0], +q[1], +q[2], false); e.hp = Math.max(1, +q[3] || 1); pushOut(e, 0.5 * e.sc); });
+  if (!noLock) requestLock(); showHint();
+  $('vbtn').hidden = false; refreshLoadBtn();
+  toast('Game loaded', 'Wave ' + W.n + ' &middot; ' + (d.en ? d.en.length : 0) + ' zombies on the floor', 2400);
+  return true;
+}
+$('vbtn').addEventListener('click', (e) => { e.preventDefault(); saveGame(); $('vbtn').blur(); });
+$('pSave').addEventListener('click', (e) => { e.preventDefault(); saveGame(); });
+$('pLoad').addEventListener('click', (e) => { e.preventDefault(); loadGame(); });
+$('loadBtn').addEventListener('click', (e) => { e.preventDefault(); loadGame(); });
+refreshLoadBtn();
 /* ---- scores (this device only: nothing is ever sent anywhere) ---- */
 let scores = [], lastEntry = null, rankOpen = false, runSaved = false;
 try { scores = JSON.parse(localStorage.getItem('layoutsniper.scores')) || []; } catch (e) { scores = []; }
@@ -2103,8 +2153,8 @@ $('sbtn').addEventListener('click', (e) => { e.preventDefault(); setMuted(!muted
 $('sbtn').innerHTML = ICON_OFF;
 function syncPauseBtn() {
   const show = state === 'playing', on = paused;
-  if (show !== pbShown) { pbShown = show; $('pbtn').hidden = !show; $('sbtn').hidden = !show; }
-  if (on !== pbOn) { pbOn = on; $('pbtn').classList.toggle('on', on); $('pbtn').setAttribute('aria-label', on ? 'Resume' : 'Pause'); }
+  if (show !== pbShown) { pbShown = show; $('pbtn').hidden = !show; $('sbtn').hidden = !show; $('vbtn').hidden = !(show && curMap === 'office'); }
+  if (on !== pbOn) { pbOn = on; if (on) refreshLoadBtn(); $('pbtn').classList.toggle('on', on); $('pbtn').setAttribute('aria-label', on ? 'Resume' : 'Pause'); }
 }
 $('again').addEventListener('click', startGame);
 
