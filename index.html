@@ -105,6 +105,8 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 #pause.screen .panel { width: 100%; height: 100%; max-width: none; max-height: none; box-sizing: border-box; justify-content: space-between; background: transparent; border: 0; backdrop-filter: none; -webkit-backdrop-filter: none; padding: 22vh 24px calc(56px + env(safe-area-inset-bottom, 0px)); }
 #pause.screen .row { flex-wrap: nowrap; gap: 12px; }
 #pause.screen .row .btn { flex: 1 1 0; text-align: center; align-self: stretch; padding: 16px 10px; }
+/* portrait phones: four buttons no longer fit on one line (Quit was pushed off-screen), so they wrap two per line */
+@media (orientation: portrait) { #pause.screen .row { flex-wrap: wrap; } #pause.screen .row .btn { flex: 1 1 calc(50% - 6px); min-width: 0; } }
 @media (orientation: portrait) { .touchmode #hud .ammo { top: 52px; } .touchmode #hpbar { width: 66.667%; } }
 /* training / sandbag have no score or wave, so the ammo count takes the score's place (top right) */
 body.training #hud .ammo { top: 0 !important; right: 0 !important; bottom: auto !important; padding: inherit !important; }
