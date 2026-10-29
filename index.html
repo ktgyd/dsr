@@ -99,6 +99,9 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 .touchmode #hud .ammo .slots span { padding: 2px 6px; background: rgba(0,0,0,.35); text-align: center; white-space: nowrap; }
 .touchmode #hud .ammo .slots span.on { background: var(--amber); }
 @media (orientation: landscape) { .touchmode #hud .ammo { top: max(12px, env(safe-area-inset-top, 0px)); right: calc(max(18px, env(safe-area-inset-right, 0px)) + 104px); padding: 0; } .touchmode #hud .ammo b { font-size: 38px; } .touchmode #hud .ammo em { font-size: 16px; } .touchmode #wname { font-size: 14px; } }
+@media (orientation: portrait) { .touchmode #hud .ammo { top: 52px; } .touchmode #hpbar { width: 66.667%; } }
+/* training / sandbag have no score or wave, so the ammo count takes the score's place (top right) */
+body.training #hud .ammo { top: 0 !important; right: 0 !important; bottom: auto !important; padding: inherit !important; }
 .touchmode #hud .hp { bottom: auto; top: 0; width: 180px; }
 #mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px); width: 112px; height: auto; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.35); display: none; pointer-events: none; }
 #mm.on { display: block; }
