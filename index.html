@@ -594,21 +594,24 @@ function buildOffice() {
   // MEETING ROOMS (solid walls): north N1-N3; south S2-S3 mirror N2-N3 (south also has the pantry). Far-end rooms (N3/S3) have both doors and the whiteboard on the lobby side.
   [-1, 1].forEach((t) => [[11, 21], [21, 32], [32, 44]].forEach((q) => {
     if (t > 0 && q[0] === 11) return;
-    if (q[0] === 21 && q[1] === 32) { // N2 / S2 -> restroom (passage walls + door gaps unchanged; restroom block at the far end, door on its wall facing the passage)
+    if (q[0] === 21 && q[1] === 32) { // N2 / S2 -> women's (west) + men's (east) restrooms (passage walls + door gaps unchanged; restroom block at the far end, one door at each end of its wall facing the passage)
       const cc = (q[0] + q[1]) / 2; sideWall(t, q[0], cc - 1.3, pm, true); sideWall(t, cc + 1.3, q[1], pm, true); crossWall(t, q[1], pm);
-      const wz = 27.5, zin = t * (wz + q[1]) / 2, zf = t * wz; // front wall of the restroom (faces the passage)
-      { const a = zr(t, wz - 0.1, wz + 0.1); slab(-CW, -1.0, a[0], a[1], H, pm, true); slab(1.0, CW, a[0], a[1], H, pm, true); mk(new THREE.BoxGeometry(2.0, H - 2.3, 0.2), pm, 0, 2.3 + (H - 2.3) / 2, zf, 0, true); }
-      const lz = t * (wz - 0.12); // door on the passage-side face of the wall
-      mk(new THREE.BoxGeometry(2.2, 0.1, 0.16), dark, 0, 2.2, zf, 0, false); mk(new THREE.BoxGeometry(0.1, 2.2, 0.16), dark, -1.05, 1.1, zf, 0, false); mk(new THREE.BoxGeometry(0.1, 2.2, 0.16), dark, 1.05, 1.1, zf, 0, false);
-      mk(new THREE.BoxGeometry(0.08, 2.1, 0.9), wood, -1.0, 1.05, t * (wz + 0.55), 0, false); // door leaf, swung open into the restroom
-      const rs = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), new THREE.MeshBasicMaterial({ map: signTex('WC', 'RESTROOM') }));
-      rs.position.set(0, 2.55, t * (wz - 0.13)); rs.rotation.y = t > 0 ? Math.PI : 0; world.add(rs);
-      // stalls (west half) and sinks (east half) along the back wall
-      const bz = t * (q[1] - 1.1);
-      for (let i = 0; i < 4; i++) { const sx = -7.4 + i * 1.5; B.add(sx + 0.75, 1.0, t * (q[1] - 1.5), 0.05, 2.0, 2.8, 0xcfd6dc); B.add(sx, 0.25, t * (q[1] - 0.6), 0.45, 0.5, 0.6, 0xf2f4f6); }
-      addCol(-4.7, t * (q[1] - 1.5), 5.2, 3.0, 2);
-      for (let i = 0; i < 3; i++) { const sx = 3 + i * 1.5; B.add(sx, 0.85, bz - t * 0.1, 0.9, 0.12, 0.5, 0xf2f4f6); B.add(sx, 1.5, t * (q[1] - 0.2), 0.7, 0.9, 0.04, 0xbfd4e2); }
-      addCol(4.5, bz, 4.2, 0.9, 1.0);
+      const wz = 27.5, zf = t * wz, bz = t * (q[1] - 1.1), DX = 5.8; // front wall of the restrooms (faces the passage); the two doors sit at the far ends, right beside the office entrances
+      { const a = zr(t, wz - 0.1, wz + 0.1); slab(-CW, -DX - 1.0, a[0], a[1], H, pm, true); slab(-DX + 1.0, DX - 1.0, a[0], a[1], H, pm, true); slab(DX + 1.0, CW, a[0], a[1], H, pm, true); }
+      { const a = zr(t, wz, q[1]); slab(-0.1, 0.1, a[0], a[1], H, pm, true); } // wall between the women's (west) and men's (east) restroom
+      [[-1, 'WOMEN', '여자화장실'], [1, 'MEN', '남자화장실']].forEach((r) => {
+        const sg = r[0], cx = sg * DX;
+        mk(new THREE.BoxGeometry(2.0, H - 2.3, 0.2), pm, cx, 2.3 + (H - 2.3) / 2, zf, 0, true); // wall above the door
+        mk(new THREE.BoxGeometry(2.2, 0.1, 0.16), dark, cx, 2.2, zf, 0, false); mk(new THREE.BoxGeometry(0.1, 2.2, 0.16), dark, cx - 1.05, 1.1, zf, 0, false); mk(new THREE.BoxGeometry(0.1, 2.2, 0.16), dark, cx + 1.05, 1.1, zf, 0, false);
+        mk(new THREE.BoxGeometry(0.08, 2.1, 0.9), wood, cx + sg * 1.0, 1.05, t * (wz + 0.55), 0, false); // door leaf, swung open into the restroom
+        const rs = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), new THREE.MeshBasicMaterial({ map: signTex(r[1], r[2]) }));
+        rs.position.set(cx, 2.55, t * (wz - 0.13)); rs.rotation.y = t > 0 ? Math.PI : 0; world.add(rs);
+        // three stalls along the back wall on the inner side, two sinks with mirrors on the outer side (in front of the door)
+        for (let i = 0; i < 3; i++) { const sx = 0.85 + i * 1.5; B.add(sg * (sx + 0.75), 1.0, t * (q[1] - 1.5), 0.05, 2.0, 2.8, 0xcfd6dc); B.add(sg * sx, 0.25, t * (q[1] - 0.6), 0.45, 0.5, 0.6, 0xf2f4f6); }
+        addCol(sg * 2.35, t * (q[1] - 1.5), 4.5, 3.0, 2);
+        [5.4, 6.6].forEach((sx) => { B.add(sg * sx, 0.85, bz - t * 0.1, 0.9, 0.12, 0.5, 0xf2f4f6); B.add(sg * sx, 1.5, t * (q[1] - 0.2), 0.7, 0.9, 0.04, 0xbfd4e2); });
+        addCol(sg * 6.0, bz, 2.3, 0.9, 1.0);
+      });
       return;
     }
     const c = (q[0] + q[1]) / 2, zc = t * c, back = q[1] >= S, dc = back ? q[0] + 2 : c;
@@ -1042,7 +1045,7 @@ G.snout = new THREE.CylinderGeometry(0.06, 0.07, 0.07, 14).rotateX(Math.PI / 2);
 G.ear = new THREE.ConeGeometry(0.06, 0.11, 4); G.bowLoop = new THREE.ConeGeometry(0.06, 0.12, 4); G.bowKnot = new THREE.SphereGeometry(0.03, 8, 6);
 G.skirt = new THREE.CylinderGeometry(0.3, 0.46, 0.44, 16);
 const skinPig = new THREE.MeshStandardMaterial({ color: 0xe5a0aa, roughness: 0.8 }), snoutMat = new THREE.MeshStandardMaterial({ color: 0xf0b4bc, roughness: 0.7 }), nostrilMat = new THREE.MeshStandardMaterial({ color: 0x5a2a32, roughness: 1 });
-const clothDress = new THREE.MeshStandardMaterial({ color: 0x8a3a52, roughness: 0.9 }), ribbonMat = new THREE.MeshStandardMaterial({ color: 0xd2122a, roughness: 0.5, emissive: 0x330005, emissiveIntensity: 0.6 });
+const clothDress = new THREE.MeshStandardMaterial({ color: 0x8a3a52, roughness: 0.9 }), clothGodu = new THREE.MeshStandardMaterial({ color: 0x8c9096, roughness: 0.9 }), ribbonMat = new THREE.MeshStandardMaterial({ color: 0xd2122a, roughness: 0.5, emissive: 0x330005, emissiveIntensity: 0.6 });
 const HUM = { head: [0, 1.68, 0.21], body: [[0, 0.5, 0.3], [0, 0.98, 0.3], [0, 1.38, 0.3]] };
 const TYPES = {
   runner: { hp: 45, speed: 4.7, dmg: 9, scale: 0.96, sx: 0.92, score: 140, lean: 0.38, pose: 'swing', legAmp: 0.95, knee: 1.3, jaw: 0.35, eye: eyeRed, hit: HUM },
@@ -1051,7 +1054,7 @@ const TYPES = {
   spitter: { hp: 55, speed: 1.9, dmg: 6, scale: 1.0, sy: 1.08, score: 180, lean: 0.18, pose: 'reach', legAmp: 0.5, knee: 0.8, jaw: 0.55, skin: skinGreen, eye: eyeAcid, sac: true, ranged: { min: 6, max: 13, cd: 2.8 }, hit: { head: [0, 1.72, 0.21], body: [[0, 0.5, 0.3], [0, 0.98, 0.3], [0, 1.38, 0.3]] } },
   bloater: { hp: 160, speed: 1.3, dmg: 0, scale: 1.25, score: 220, lean: 0.05, pose: 'wide', legAmp: 0.35, knee: 0.4, jaw: 0.3, armX: 0.5, headScale: 0.8, belly: true, skin: skinPale, explode: { r: 5.5, dmg: 45 }, hit: { head: [0, 1.58, 0.19], body: [[0, 0.55, 0.45], [0, 1.05, 0.6], [0, 1.4, 0.4]] } },
   mukking: { hp: 300, speed: 1.7, dmg: 22, scale: 1.1, sx: 1.12, score: 320, lean: 0.06, pose: 'wide', legAmp: 0.4, knee: 0.5, jaw: 0.3, armX: 0.42, headScale: 1.12, bald: true, pig: true, ribbon: true, fat: true, skin: skinPig, cloth: clothDress, hit: { head: [0, 1.7, 0.24], body: [[0, 0.5, 0.42], [0, 0.98, 0.48], [0, 1.38, 0.4]] } },
-  godu: { hp: 460, speed: 1.5, dmg: 28, scale: 1.35, sx: 1.2, score: 480, lean: 0.05, pose: 'wide', legAmp: 0.35, knee: 0.45, jaw: 0.3, armX: 0.5, headScale: 1.12, bald: true, pig: true, fat: true, fatMul: 1.3, skin: skinPig, cloth: clothDress, hit: { head: [0, 1.7, 0.26], body: [[0, 0.5, 0.52], [0, 0.98, 0.58], [0, 1.38, 0.48]] } },
+  godu: { hp: 460, speed: 1.5, dmg: 28, scale: 1.35, sx: 1.2, score: 480, lean: 0.05, pose: 'wide', legAmp: 0.35, knee: 0.45, jaw: 0.3, armX: 0.5, headScale: 1.12, bald: true, pig: true, fat: true, fatMul: 1.3, skin: skinPig, cloth: clothGodu, hit: { head: [0, 1.7, 0.26], body: [[0, 0.5, 0.52], [0, 0.98, 0.58], [0, 1.38, 0.48]] } },
   riot: { hp: 220, speed: 1.8, dmg: 18, scale: 1.08, score: 260, lean: 0.08, pose: 'guard', legAmp: 0.45, knee: 0.6, jaw: 0, cloth: clothRiot, helmet: true, armor: true, headMul: 1.1, bodyMul: 0.5, hit: HUM }
 };
 const WALKER_BASE = { hp: 70, speed: 2.0, dmg: 12, scale: 1.0, score: 100, lean: 0.12, pose: 'reach', legAmp: 0.55, knee: 0.9, jaw: 0.15, hit: HUM }; // template only: the plain walker is no longer spawned
