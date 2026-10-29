@@ -599,7 +599,7 @@ function buildOffice() {
       const wz = 27.5, zf = t * wz, bz = t * (q[1] - 1.1), DX = 5.8; // front wall of the restrooms (faces the passage); the two doors sit at the far ends, right beside the office entrances
       { const a = zr(t, wz - 0.1, wz + 0.1); slab(-CW, -DX - 1.0, a[0], a[1], H, pm, true); slab(-DX + 1.0, DX - 1.0, a[0], a[1], H, pm, true); slab(DX + 1.0, CW, a[0], a[1], H, pm, true); }
       { const a = zr(t, wz, q[1]); slab(-0.1, 0.1, a[0], a[1], H, pm, true); } // wall between the women's (west) and men's (east) restroom
-      [[-1, 'WOMEN', '여자화장실'], [1, 'MEN', '남자화장실']].forEach((r) => {
+      (t > 0 ? [[-1, 'WOMEN', '여자화장실'], [1, 'MEN', '남자화장실']] : [[-1, 'MEN', '남자화장실'], [1, 'WOMEN', '여자화장실']]).forEach((r) => { // south: women west / men east; north: swapped (men west / women east)
         const sg = r[0], cx = sg * DX;
         mk(new THREE.BoxGeometry(2.0, H - 2.3, 0.2), pm, cx, 2.3 + (H - 2.3) / 2, zf, 0, true); // wall above the door
         mk(new THREE.BoxGeometry(2.2, 0.1, 0.16), dark, cx, 2.2, zf, 0, false); mk(new THREE.BoxGeometry(0.1, 2.2, 0.16), dark, cx - 1.05, 1.1, zf, 0, false); mk(new THREE.BoxGeometry(0.1, 2.2, 0.16), dark, cx + 1.05, 1.1, zf, 0, false);
@@ -1178,7 +1178,7 @@ function makeZombie(type, x, z, idle) {
   root.position.set(x, 0, z); scene.add(root);
   const tag = new THREE.Sprite(tagMat(type)); tag.scale.set(1.25 / sc, 0.31 / sc, 1); tag.position.y = (TAG_Y[type] || 2.2) / (cfg.sy || 1); root.add(tag);
   const e = { type: type, tag: tag, cfg: cfg, root: root, body: body, spine: spine, upper: upper, head: head, jaw: jaw, thighs: thighs, shins: shins, arms: arms, strips: strips, sac: sac, x: x, z: z, sc: sc,
-    hp: cfg.hp * (1 + Math.max(0, W.n - 1) * 0.06), speed: cfg.speed * (1 + Math.min(W.n, 15) * 0.02) * rand(0.9, 1.12), phase: rand(0, TAU), dead: false, deadT: 0, attackT: 0, attackCd: rand(0, 0.6),
+    hp: cfg.hp * rampK(RAMP_HP) * (1 + Math.max(0, W.n - 1) * 0.06), speed: cfg.speed * rampK(RAMP_SPD) * (1 + Math.min(W.n, 15) * 0.02) * rand(0.9, 1.12), phase: rand(0, TAU), dead: false, deadT: 0, attackT: 0, attackCd: rand(0, 0.6),
     hit: false, avoid: 0, stagger: 0, idle: !!idle, rot: 0, wob: rand(0, TAU), tilt: rand(-0.2, 0.2), leanOff: rand(-0.06, 0.06), twitchT: rand(2, 6),
     limp: Math.random() < 0.3, limpSide: Math.random() < 0.5 ? 0 : 1, dragArm: Math.random() < 0.25, fallDir: -1, spitCd: rand(1, 2.5), spitAnim: 0, exploded: false };
   e.hp0 = e.hp; enemies.push(e); return e;
@@ -1188,6 +1188,10 @@ function removeEnemy(e) { scene.remove(e.root); const i = enemies.indexOf(e); if
 /* ---------------- state ---------------- */
 const P = { x: 0, z: 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0, hp: 100, ground: true, bob: 0, kickP: 0, shake: 0, dead: false, speed: 0 };
 const W = { n: 0, toSpawn: 0, spawnT: 0, state: 'idle', breakT: 0 };
+// Early-wave difficulty ramp: wave 1 starts at `lo` of the normal stat and climbs evenly to 100% by wave RAMP_END (practice modes have W.n = 0 and are never weakened).
+const RAMP_END = 8;
+const rampK = (lo) => W.n < 1 ? 1 : lo + (1 - lo) * Math.min(1, (W.n - 1) / (RAMP_END - 1));
+const RAMP_HP = 0.5, RAMP_SPD = 0.7, RAMP_DMG = 0.55;
 const S = { score: 0, kills: 0, heads: 0, shots: 0, hits: 0 };
 let state = 'menu', paused = false, noLock = touchMode, locked = false, cur = 0, torchOn = true;
 let fireT = 0, reloadT = 0, swapT = 0, bloom = 0, adsT = 0, kick = 0, flashT = 0, vmSwayX = 0, vmSwayY = 0, hmT = 0, dmgFlash = 0, deadT = 0, pumpT = 0, groanT = 2;
@@ -1425,7 +1429,7 @@ function updateProjectiles(dt) {
     const p = projectiles[i]; p.life -= dt; p.vy -= p.g * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.mesh.position.set(p.x, p.y, p.z);
     let splash = false;
     const dx = p.x - P.x, dz = p.z - P.z;
-    if (!P.dead && dx * dx + dz * dz < 0.55 && Math.abs(p.y - (1.2 + P.y)) < 1.0) { hurtPlayer(12, null); splash = true; }
+    if (!P.dead && dx * dx + dz * dz < 0.55 && Math.abs(p.y - (1.2 + P.y)) < 1.0) { hurtPlayer(12 * rampK(RAMP_DMG), null); splash = true; }
     else if (p.y <= 0.06) splash = true;
     else for (let k = 0; k < COL.length; k++) { const c = COL[k]; if (p.x > c.x0 && p.x < c.x1 && p.z > c.z0 && p.z < c.z1 && p.y < c.h) { splash = true; break; } }
     if (splash || p.life <= 0) {
@@ -1444,7 +1448,7 @@ function explode(e) {
   for (let i = 0; i < 12; i++) spawnP(e.x, rand(0.3, 1.2), e.z, rand(-4, 4), rand(0.5, 3), rand(-4, 4), rand(0.8, 1.5), 1.7, 0x667040, false, -0.3, 0.35);
   addPool(e.x, e.z, 2.6, 0x2d4a10); sndBoom(); boomT = 0.2; boomLight.position.copy(pos);
   const pd = Math.hypot(P.x - e.x, P.z - e.z);
-  if (pd < R && !P.dead) { hurtPlayer(e.cfg.explode.dmg * (1 - 0.7 * pd / R), null); P.shake = 1; }
+  if (pd < R && !P.dead) { hurtPlayer(e.cfg.explode.dmg * rampK(RAMP_DMG) * (1 - 0.7 * pd / R), null); P.shake = 1; }
   for (const o of enemies) { if (o === e || o.dead || o.idle) continue; const d = Math.hypot(o.x - e.x, o.z - e.z); if (d < R) damageEnemy(o, 130 * (1 - 0.6 * d / R), false, pos); }
 }
 function animZ(e, t, moving, atk) {
@@ -1512,7 +1516,7 @@ function updateEnemies(dt, t) {
     if (e.attackT > 0) {
       e.attackT -= dt; atk = clamp(1 - e.attackT / 0.9, 0, 1);
       if (cfg.explode) { pustMat.emissiveIntensity = 2.5 + 2 * Math.sin(t * 30); if (e.attackT <= 0) { explode(e); continue; } }
-      else if (atk > 0.55 && !e.hit) { e.hit = true; if (dist < range + 0.5) hurtPlayer(cfg.dmg * (1 + Math.min(W.n, 12) * 0.03), e); }
+      else if (atk > 0.55 && !e.hit) { e.hit = true; if (dist < range + 0.5) hurtPlayer(cfg.dmg * rampK(RAMP_DMG) * (1 + Math.min(W.n, 12) * 0.03), e); }
       if (e.attackT <= 0) e.attackCd = e.type === 'brute' ? 1.2 : 0.8;
     } else if (!hold && (back || dist >= range * 0.9)) {
       let dxn = ax, dzn = az;
