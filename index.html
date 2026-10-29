@@ -95,7 +95,7 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 .touchmode #touch { display: block; }
 .touchmode #hud .ammo { bottom: auto; top: 96px; }
 .touchmode #hud .hp { bottom: auto; top: 0; width: 180px; }
-#mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: max(14px, env(safe-area-inset-top, 0px)); width: 112px; height: auto; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.35); display: none; pointer-events: none; }
+#mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px); width: 112px; height: auto; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.35); display: none; pointer-events: none; }
 #mm.on { display: block; }
 .touchmode #mm { top: calc(max(14px, env(safe-area-inset-top, 0px)) + 94px); width: 92px; }
 .touchmode #hint, .touchmode #xh .t, .touchmode #xh .b { display: none; }
