@@ -44,7 +44,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 #hpbar { height: 8px; background: rgba(255,255,255,.14); margin-top: 6px; overflow: hidden; }
 #hpbar i { display: block; height: 100%; width: 100%; background: var(--amber); transition: width .15s linear, background-color .2s; }
 #hpbar.low i { background: var(--red); }
-#hud .lv { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 12px; letter-spacing: .14em; color: var(--muted); text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+#hud .lv { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 12px; letter-spacing: .14em; color: var(--muted); text-shadow: 0 1px 6px rgba(0,0,0,.7); }
 #xpbar { flex: 1; height: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
 #xpbar i { display: block; height: 100%; width: 0; background: #6fd0ff; }
 #hud .ammo { position: absolute; right: 0; bottom: 0; padding: inherit; text-align: right; text-shadow: 0 2px 12px rgba(0,0,0,.7); }
@@ -113,10 +113,17 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 @media (orientation: portrait) { .touchmode #hud .ammo { top: 52px; } .touchmode #hpbar { width: 66.667%; } }
 /* training / sandbag have no score or wave, so the ammo count takes the score's place (top right) */
 body.training #hud .ammo { top: 0 !important; right: 0 !important; bottom: auto !important; padding: inherit !important; }
-.touchmode #hud .hp { bottom: auto; top: 0; width: 180px; }
+/* touch HUD, top-left column (portrait + landscape): pause / sound / save buttons, then LV, then health, then the minimap. Row heights are fixed so the minimap can sit right under the health bar. */
+.touchmode { --tb-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 46px); --tb-left: max(12px, env(safe-area-inset-left, 0px)); }
+.touchmode #hud .hp { bottom: auto; top: var(--tb-top); left: var(--tb-left); padding: 0; width: 180px; }
+.touchmode #hud .hp .lv { height: 14px; margin: 0 0 4px; line-height: 14px; }
+.touchmode #hud .hp small { line-height: 14px; }
+.touchmode #hud .hp b { display: block; font-size: 34px; line-height: 34px; }
+.touchmode #hpbar { height: 6px; margin-top: 4px; }
 #mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px); width: 112px; height: auto; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.35); display: none; pointer-events: none; }
 #mm.on { display: block; }
-.touchmode #mm { top: calc(max(14px, env(safe-area-inset-top, 0px)) + 94px); width: 92px; }
+.touchmode #mm { left: var(--tb-left); top: calc(var(--tb-top) + 84px); width: 92px; }
+body.training.touchmode #mm { top: var(--tb-top); }
 .touchmode #hint, .touchmode #xh .t, .touchmode #xh .b { display: none; }
 
 /* screens */
@@ -226,7 +233,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
   <div class="top"><div class="score"><small>SCORE</small><b class="mono" id="score">0</b></div></div>
   <canvas id="mm" width="152" height="176"></canvas>
   <div class="wave"><small>WAVE</small><b id="wave">1</b><span id="left">0 LEFT</span></div>
-  <div class="hp"><small>HEALTH</small><b class="mono" id="hp">100</b><div id="hpbar"><i id="hpfill"></i></div><div class="lv"><span class="mono" id="lvt">LV 1</span><div id="xpbar"><i id="xpfill"></i></div></div></div>
+  <div class="hp"><div class="lv"><span class="mono" id="lvt">LV 1</span><div id="xpbar"><i id="xpfill"></i></div></div><small>HEALTH</small><b class="mono" id="hp">100</b><div id="hpbar"><i id="hpfill"></i></div></div>
   <div class="ammo"><small id="wname">M4 RIFLE</small><div><b class="mono" id="mag">60</b><em class="mono" id="res">/ 240</em></div><div class="slots mono"><span id="s1" class="on">1 M4</span><span id="s2">2 PUMP</span><span id="s3">3 SNIPER</span><span id="s4">4 GRENADE</span><span id="s5">5 북어</span><span id="s6" hidden>6 FISTS</span></div></div>
 </div>
 <button id="pbtn" type="button" aria-label="Pause" title="Pause (P)" hidden><i></i><i></i></button>
@@ -277,7 +284,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 </section>
 
 <section id="rank" class="screen inset" hidden>
-  <div class="panel card"><p class="kicker">Leaderboard</p><h1 style="font-size:clamp(44px,9vw,76px)">Records</h1><p class="lede" id="rMsg"></p><ol class="rlist" id="rList"></ol><div class="row"><button class="btn ghost" id="rClose">Close</button><button class="btn ghost" id="rClear">Clear</button></div></div>
+  <div class="panel card"><p class="kicker">Leaderboard</p><h1 style="font-size:clamp(44px,9vw,76px)">Records</h1><p class="lede" id="rMsg"></p><ol class="rlist" id="rList"></ol><div class="row"><button class="btn ghost" id="rClose">Close</button><button class="btn ghost" id="rClear">Clear</button><button class="btn ghost" id="rLvClear">Reset Level</button></div></div>
 </section>
 
 <section id="villains" class="screen inset" hidden>
@@ -2095,7 +2102,8 @@ function renderRank() {
 function openRank() { rankOpen = true; $('rank').hidden = false; renderRank(); }
 function closeRank() { rankOpen = false; $('rank').hidden = true; }
 $('rankBtn').addEventListener('click', openRank); $('rankBtn2').addEventListener('click', openRank); $('rClose').addEventListener('click', closeRank);
-$('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('layoutsniper.best'); localStorage.removeItem(LV_KEY); LV.xp = 0; LV.lv = 1; } catch (e) { /* ignore */ } renderRank(); } });
+$('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('layoutsniper.best'); } catch (e) { /* ignore */ } renderRank(); } });
+$('rLvClear').addEventListener('click', () => { if (confirm('Reset your level and XP back to LV 1?')) { try { localStorage.removeItem(LV_KEY); } catch (e) { /* ignore */ } LV.xp = 0; LV.lv = 1; P.hp = Math.min(P.hp, maxHp()); renderRank(); } });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && rankOpen) closeRank(); });
 /* ---- Villain List: a menu tile (next to the maps) that shows every zombie type ---- */
 const VILLAIN_ORDER = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'spitter', 'bloater', 'riot', 'dongmin', 'mukking', 'brute', 'godu', 'johnson', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
