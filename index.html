@@ -44,6 +44,9 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 #hpbar { height: 8px; background: rgba(255,255,255,.14); margin-top: 6px; overflow: hidden; }
 #hpbar i { display: block; height: 100%; width: 100%; background: var(--amber); transition: width .15s linear, background-color .2s; }
 #hpbar.low i { background: var(--red); }
+#hud .lv { display: flex; align-items: center; gap: 8px; margin-top: 5px; font-size: 12px; letter-spacing: .14em; color: var(--muted); text-shadow: 0 1px 6px rgba(0,0,0,.7); }
+#xpbar { flex: 1; height: 4px; background: rgba(255,255,255,.14); overflow: hidden; }
+#xpbar i { display: block; height: 100%; width: 0; background: #6fd0ff; }
 #hud .ammo { position: absolute; right: 0; bottom: 0; padding: inherit; text-align: right; text-shadow: 0 2px 12px rgba(0,0,0,.7); }
 #hud .ammo b { font-size: clamp(44px, 7vw, 72px); line-height: 1; }
 #hud .ammo em { font-style: normal; font-size: clamp(18px, 2.6vw, 26px); color: var(--muted); margin-left: 6px; }
@@ -223,7 +226,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
   <div class="top"><div class="score"><small>SCORE</small><b class="mono" id="score">0</b></div></div>
   <canvas id="mm" width="152" height="176"></canvas>
   <div class="wave"><small>WAVE</small><b id="wave">1</b><span id="left">0 LEFT</span></div>
-  <div class="hp"><small>HEALTH</small><b class="mono" id="hp">100</b><div id="hpbar"><i id="hpfill"></i></div></div>
+  <div class="hp"><small>HEALTH</small><b class="mono" id="hp">100</b><div id="hpbar"><i id="hpfill"></i></div><div class="lv"><span class="mono" id="lvt">LV 1</span><div id="xpbar"><i id="xpfill"></i></div></div></div>
   <div class="ammo"><small id="wname">M4 RIFLE</small><div><b class="mono" id="mag">60</b><em class="mono" id="res">/ 240</em></div><div class="slots mono"><span id="s1" class="on">1 M4</span><span id="s2">2 PUMP</span><span id="s3">3 SNIPER</span><span id="s4">4 GRENADE</span><span id="s5">5 북어</span><span id="s6" hidden>6 FISTS</span></div></div>
 </div>
 <button id="pbtn" type="button" aria-label="Pause" title="Pause (P)" hidden><i></i><i></i></button>
@@ -1338,6 +1341,19 @@ function makeZombie(type, x, z, idle) {
 function removeEnemy(e) { scene.remove(e.root); const i = enemies.indexOf(e); if (i >= 0) enemies.splice(i, 1); }
 
 /* ---------------- state ---------------- */
+/* ---- player level: XP from kills (office runs only) is kept on this device across runs; each level raises max health, damage and speed a little ---- */
+const LV = { xp: 0, lv: 1 }, LV_MAX = 30, LV_KEY = 'layoutsniper.xp';
+const xpAt = (L) => 300 * (L - 1) + 100 * (L - 1) * (L - 2); // total XP needed to reach level L
+const lvOf = (xp) => { let L = 1; while (L < LV_MAX && xp >= xpAt(L + 1)) L++; return L; };
+try { LV.xp = Math.max(0, Number(localStorage.getItem(LV_KEY)) || 0); } catch (e) { /* storage unavailable */ }
+LV.lv = lvOf(LV.xp);
+const maxHp = () => 100 * (1 + 0.04 * (LV.lv - 1)), dmgMul = () => 1 + 0.03 * (LV.lv - 1), spdMul = () => 1 + 0.01 * (LV.lv - 1);
+function gainXp(n) {
+  if (!(n > 0)) return;
+  LV.xp += n; try { localStorage.setItem(LV_KEY, String(Math.round(LV.xp))); } catch (e) { /* ignore */ }
+  const L = lvOf(LV.xp);
+  if (L > LV.lv) { LV.lv = L; P.hp = Math.min(maxHp(), P.hp + 20); toast('LEVEL UP', 'Level ' + L + ' &middot; more health, damage and speed', 2400); sndPickup(); }
+}
 const P = { x: 0, z: 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0, hp: 100, ground: true, bob: 0, kickP: 0, shake: 0, dead: false, speed: 0 };
 const W = { n: 0, toSpawn: 0, spawnT: 0, state: 'idle', breakT: 0 };
 // Early-wave difficulty ramp: wave 1 starts at `lo` of the normal stat and climbs evenly to 100% by wave RAMP_END (practice modes have W.n = 0 and are never weakened).
@@ -1554,14 +1570,14 @@ function zapKill(e) {
 }
 function damageEnemy(e, dmg, head, pt) {
   const cfg = e.cfg;
-  dmg *= head ? (cfg.headMul || 2.2) : (cfg.bodyMul || 1);
+  dmg *= head ? (cfg.headMul || 2.2) : (cfg.bodyMul || 1); if (!e.train) dmg *= dmgMul();
   if (cfg.armor) { sparks(pt, 4); sndPing(); }
   if (e.train) { e.hp -= dmg; e.hits++; blood(pt, cfg.armor ? 1 : (head ? 6 : 3), false, cfg.explode ? 0x66aa22 : 0x7a0d0d); feed(head ? 'HEADSHOT' : 'HIT'); if (e.hp <= 0 || e.hits >= trainHits()) trainSwap(e); return; }
   e.hp -= dmg; e.stagger = cfg.explode ? 0.05 : 0.18;
   blood(pt, cfg.armor ? 1 : (head ? 6 : 3), false, cfg.explode ? 0x66aa22 : 0x7a0d0d);
   if (e.hp <= 0 && !e.dead) {
     e.tag.visible = false; e.dead = true; e.deadT = 0; e.fallDir = head ? -1 : (Math.random() < 0.65 ? -1 : 1); S.kills++; if (head) S.heads++;
-    const add = cfg.score + (head ? 50 : 0); S.score += add; feed((head ? 'HEADSHOT  +' : 'KILL  +') + add);
+    const add = cfg.score + (head ? 50 : 0); S.score += add; if (!isTrain()) gainXp(Math.round(add / 10)); feed((head ? 'HEADSHOT  +' : 'KILL  +') + add);
     blood(new THREE.Vector3(e.x, 1.1 * e.sc, e.z), 14, true, cfg.explode ? 0x66aa22 : 0x7a0d0d);
     addPool(e.x, e.z, cfg.crawl ? 0.8 : 1.1 * e.sc);
     sndDie(Math.hypot(e.x - P.x, e.z - P.z), 0);
@@ -1604,7 +1620,7 @@ function updatePickups(dt) {
     const dx = P.x - p.x, dz = P.z - p.z;
     let take = false;
     if (dx * dx + dz * dz < 2.0) {
-      if (p.type === 'hp' && P.hp < 100) { P.hp = Math.min(100, P.hp + 30); take = true; feed('+30 HEALTH'); }
+      if (p.type === 'hp' && P.hp < maxHp()) { P.hp = Math.min(maxHp(), P.hp + 30); take = true; feed('+30 HEALTH'); }
       else if (p.type === 'ammo') { WEAPONS[0].reserve = Math.min(WEAPONS[0].cap, WEAPONS[0].reserve + 90); WEAPONS[1].reserve = Math.min(WEAPONS[1].cap, WEAPONS[1].reserve + 10); WEAPONS[2].reserve = Math.min(WEAPONS[2].cap, WEAPONS[2].reserve + 4); WEAPONS[3].mag = Math.min(6, WEAPONS[3].mag + 1); take = true; feed('+AMMO'); }
     }
     if (take) sndPickup();
@@ -1639,7 +1655,7 @@ function updateWaves(dt) {
     const maxAlive = Math.min(30, 12 + W.n * 2);
     if (W.spawnT <= 0 && W.toSpawn > 0 && aliveCount() < maxAlive) { spawnOne(); W.toSpawn--; W.spawnT = Math.max(0.4, 1.7 - W.n * 0.09); }
     if (W.toSpawn === 0 && aliveCount() === 0) {
-      W.state = 'break'; W.breakT = 7; const bonus = W.n * 200; S.score += bonus; P.hp = Math.min(100, P.hp + 25);
+      W.state = 'break'; W.breakT = 7; const bonus = W.n * 200; S.score += bonus; P.hp = Math.min(maxHp(), P.hp + 25);
       WEAPONS[0].reserve = Math.min(WEAPONS[0].cap, WEAPONS[0].reserve + 80); WEAPONS[1].reserve = Math.min(WEAPONS[1].cap, WEAPONS[1].reserve + 8); WEAPONS[2].reserve = Math.min(WEAPONS[2].cap, WEAPONS[2].reserve + 3); WEAPONS[3].mag = Math.min(6, WEAPONS[3].mag + 1);
       toast('Wave ' + W.n + ' cleared', '+' + bonus + ' bonus  &middot;  +25 health  &middot;  resupplied', 3600);
     }
@@ -1939,7 +1955,7 @@ function startGame() {
   initAudio();
   clearEnemies();
   WEAPONS.forEach((x) => { x.mag = x.magMax; x.reserve = x.res0; }); NADES.forEach((n) => scene.remove(n.m)); NADES.length = 0;
-  Object.assign(P, { x: 0, z: 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0, hp: 100, dead: false, kickP: 0, shake: 0, speed: 0 });
+  Object.assign(P, { x: 0, z: 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0, hp: maxHp(), dead: false, kickP: 0, shake: 0, speed: 0 });
   Object.assign(S, { score: 0, kills: 0, heads: 0, shots: 0, hits: 0 });
   cur = 0; fireT = 0.4; reloadT = 0; swapT = 0.4; bloom = 0; kick = 0; dmgFlash = 0; W.n = 0; W.state = 'idle';
   state = 'playing'; paused = false;
@@ -2025,7 +2041,7 @@ function loadGame(slot) {
   clearEnemies(); NADES.forEach((n) => scene.remove(n.m)); NADES.length = 0;
   const lim = (v, hi) => Math.max(0, Math.min(Number.isFinite(hi) ? hi : 1e9, (+v) | 0));
   WEAPONS.forEach((w, i) => { const q = d.wp && d.wp[i]; w.mag = q ? lim(q[0], w.magMax) : w.magMax; w.reserve = q ? lim(q[1], w.cap) : w.res0; });
-  Object.assign(P, { x: +d.P.x || 0, z: +d.P.z || 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: +d.P.yaw || 0, pitch: clamp(+d.P.pitch || 0, -1.45, 1.45), hp: clamp(+d.P.hp || 100, 1, 100), dead: false, ground: true, kickP: 0, shake: 0, speed: 0 });
+  Object.assign(P, { x: +d.P.x || 0, z: +d.P.z || 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: +d.P.yaw || 0, pitch: clamp(+d.P.pitch || 0, -1.45, 1.45), hp: clamp(+d.P.hp || maxHp(), 1, maxHp()), dead: false, ground: true, kickP: 0, shake: 0, speed: 0 });
   Object.assign(S, { score: d.S.score | 0, kills: d.S.kills | 0, heads: d.S.heads | 0, shots: d.S.shots | 0, hits: d.S.hits | 0 });
   cur = d.cur >= 0 && d.cur < WEAPONS.length ? d.cur | 0 : 0; fireT = 0.4; reloadT = 0; swapT = 0.4; bloom = 0; kick = 0; dmgFlash = 0;
   Object.assign(W, { n: d.W.n | 0 || 1, toSpawn: d.W.toSpawn | 0, state: d.W.state === 'break' ? 'break' : 'active', breakT: +d.W.breakT || 0, spawnT: Math.max(1.2, +d.W.spawnT || 0), queue: Array.isArray(d.W.queue) ? d.W.queue.filter((t) => TYPES[t]) : waveQueue() });
@@ -2079,7 +2095,7 @@ function renderRank() {
 function openRank() { rankOpen = true; $('rank').hidden = false; renderRank(); }
 function closeRank() { rankOpen = false; $('rank').hidden = true; }
 $('rankBtn').addEventListener('click', openRank); $('rankBtn2').addEventListener('click', openRank); $('rClose').addEventListener('click', closeRank);
-$('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('layoutsniper.best'); } catch (e) { /* ignore */ } renderRank(); } });
+$('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('layoutsniper.best'); localStorage.removeItem(LV_KEY); LV.xp = 0; LV.lv = 1; } catch (e) { /* ignore */ } renderRank(); } });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && rankOpen) closeRank(); });
 /* ---- Villain List: a menu tile (next to the maps) that shows every zombie type ---- */
 const VILLAIN_ORDER = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'spitter', 'bloater', 'riot', 'dongmin', 'mukking', 'brute', 'godu', 'johnson', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
@@ -2184,7 +2200,7 @@ function updatePlayer(dt) {
   const wantAds = mouseAds && !WEAPONS[cur].melee; adsT += ((wantAds ? 1 : 0) - adsT) * Math.min(1, dt * 12);
   if (curMap === 'training') { P.vx = P.vz = P.vy = P.y = 0; P.speed = 0; P.sprint = false; P.ground = true; P.x = 0; P.z = TR.pz; return; }
   const sprint = (K('shift') || joy.mag > 0.92) && nf > 0.3 && adsT < 0.3;
-  const spd = sprint ? 8.2 : (adsT > 0.5 ? 2.8 : 5.0);
+  const spd = (sprint ? 8.2 : (adsT > 0.5 ? 2.8 : 5.0)) * spdMul();
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   const tvx = (fx * nf + rx * ns) * spd, tvz = (fz * nf + rz * ns) * spd, k = 1 - Math.exp(-(P.ground ? 12 : 2.5) * dt);
   P.vx += (tvx - P.vx) * k; P.vz += (tvz - P.vz) * k;
@@ -2266,7 +2282,7 @@ function updateHud() {
   const w = WEAPONS[cur];
   setT('score', String(S.score)); setT('wave', String(Math.max(1, W.n)));
   setT('left', W.state === 'break' ? 'NEXT IN ' + Math.ceil(W.breakT) : (W.toSpawn + aliveCount()) + ' LEFT');
-  setT('hp', String(Math.ceil(P.hp))); $('hpfill').style.width = P.hp + '%'; $('hpbar').className = P.hp <= 30 ? 'low' : '';
+  setT('hp', String(Math.ceil(P.hp))); $('hpfill').style.width = Math.min(100, P.hp / maxHp() * 100) + '%'; setT('lvt', 'LV ' + LV.lv + (LV.lv >= LV_MAX ? ' MAX' : '')); { const a0 = xpAt(LV.lv), a1 = xpAt(LV.lv + 1), pc = LV.lv >= LV_MAX ? 100 : Math.max(0, Math.min(100, (LV.xp - a0) / (a1 - a0) * 100)); const xw = pc.toFixed(1) + '%'; if (cache.xpw !== xw) { cache.xpw = xw; $('xpfill').style.width = xw; } } $('hpbar').className = P.hp <= 30 ? 'low' : '';
   setT('wname', w.name); setT('mag', w.melee ? '\u2014' : String(w.mag)); setT('res', (w.melee || w.nade) ? '' : '/ ' + w.reserve);
   for (let i = 0; i < 6; i++) { const el = $('s' + (i + 1)), c = i === cur ? 'on' : ''; if (el.className !== c) el.className = c; }
   $('mag').style.color = (!w.melee && w.mag <= Math.ceil(w.magMax * 0.25)) ? 'var(--red)' : '';
