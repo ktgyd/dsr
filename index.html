@@ -87,6 +87,7 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 #joy i { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px; border-radius: 50%; background: rgba(255,176,46,.55); }
 .tb { position: fixed; width: 66px; height: 66px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-family: var(--f-display); font-weight: 800; font-size: 15px; letter-spacing: .06em; touch-action: none; }
 .tb.on { background: var(--amber); color: #140c00; }
+#bJump small { display: block; margin-top: 2px; font-size: 9px; font-weight: 700; letter-spacing: .04em; color: var(--amber); } #bJump.on small { color: inherit; }
 #bFire { right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(110px + env(safe-area-inset-bottom, 0px)); width: 84px; height: 84px; }
 #bJump { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 114px); bottom: calc(102px + env(safe-area-inset-bottom, 0px)); }
 #bRel { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 96px); bottom: calc(178px + env(safe-area-inset-bottom, 0px)); }
@@ -234,7 +235,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 <div id="touch">
   <div id="tzL"></div><div id="tzR"></div>
   <div id="joy"><i></i></div>
-  <button class="tb" id="bFire">FIRE</button><button class="tb" id="bJump">JUMP</button><button class="tb" id="bRel">RELOAD</button><button class="tb" id="bSwap">SWAP</button><button class="tb" id="bAds">ZOOM</button>
+  <button class="tb" id="bFire">FIRE</button><button class="tb" id="bJump">JUMP<small>x2 TURN</small></button><button class="tb" id="bRel">RELOAD</button><button class="tb" id="bSwap">SWAP</button><button class="tb" id="bAds">ZOOM</button>
 </div>
 
 <section id="menu" class="screen inset">
@@ -1882,7 +1883,7 @@ $('resume').addEventListener('click', () => { if (noLock) { paused = false; $('p
     const fe = (e) => { if (e.pointerId === fid) fid = null; };
     fb.addEventListener('pointerup', fe); fb.addEventListener('pointercancel', fe);
   }
-  hold('bFire', (v) => { tch.fire = v; if (v) fireQueued = true; }); hold('bJump', (v) => { tch.jump = v; });
+  hold('bFire', (v) => { tch.fire = v; if (v) fireQueued = true; }); hold('bJump', (v) => { if (v && state === 'playing') { const now = performance.now(); if (now - lastJumpTap < 320) { lastJumpTap = 0; turnRem = Math.PI; tch.jump = false; return; } lastJumpTap = now; } tch.jump = v; }); // two quick taps = turn around
   hold('bRel', (v) => { if (v && state === 'playing') startReload(); }); hold('bSwap', (v) => { if (v && state === 'playing') swapTo(nextW()); });
   $('bAds').addEventListener('pointerdown', (e) => { e.preventDefault(); mouseAds = !mouseAds; $('bAds').classList.toggle('on', mouseAds); });
 })();
@@ -2108,8 +2109,10 @@ function syncPauseBtn() {
 $('again').addEventListener('click', startGame);
 
 /* ---------------- player update ---------------- */
+let turnRem = 0, lastJumpTap = 0; // double-tap JUMP: spin 180 degrees (turnRem = angle still to turn)
 function updatePlayer(dt) {
   const K = (k) => !!keys[k];
+  if (turnRem > 0) { const st = Math.min(turnRem, Math.PI / 0.14 * dt); P.yaw += st; turnRem -= st; } // about 0.14 s for the half turn
   if (noLock && !touchMode) { P.yaw += ((K('arrowleft') ? 1 : 0) - (K('arrowright') ? 1 : 0)) * 2.2 * dt; P.pitch = clamp(P.pitch + ((K('arrowup') ? 1 : 0) - (K('arrowdown') ? 1 : 0)) * 1.6 * dt, -1.45, 1.45); }
   const fwd = (K('w') ? 1 : 0) - (K('s') ? 1 : 0) - joy.y, strafe = (K('d') ? 1 : 0) - (K('a') ? 1 : 0) + joy.x;
   let len = Math.hypot(fwd, strafe); const nf = len > 1 ? fwd / len : fwd, ns = len > 1 ? strafe / len : strafe;
