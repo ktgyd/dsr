@@ -537,11 +537,23 @@ function slab(x0, x1, z0, z1, h, mat, cast, col) {
   mk(new THREE.BoxGeometry(w, h, d), mat, cx, h / 2, cz, 0, cast);
   if (col !== false) addCol(cx, cz, w, d, h);
 }
+function mkCityTex() { // night city seen from the 19th floor: starry sky, towers with lit windows, a sea of lights far below
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 512; const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, '#050816'); g.addColorStop(0.45, '#1b1f4a'); g.addColorStop(0.62, '#6a3e6a'); g.addColorStop(0.63, '#0a0d1c'); g.addColorStop(1, '#05060e');
+  x.fillStyle = g; x.fillRect(0, 0, 1024, 512);
+  for (let i = 0; i < 90; i++) { x.fillStyle = 'rgba(255,255,255,' + (0.3 + Math.random() * 0.6) + ')'; x.fillRect(Math.random() * 1024, Math.random() * 200, 1.5, 1.5); }
+  for (let i = 0; i < 38; i++) {
+    const w = 20 + Math.random() * 48, h = 40 + Math.random() * 190, bx = Math.random() * 1000, by = 320 - h; x.fillStyle = '#0b0e1d'; x.fillRect(bx, by, w, h + 60);
+    for (let wy = by + 6; wy < 330; wy += 9) for (let wx = bx + 4; wx < bx + w - 4; wx += 7) if (Math.random() < 0.38) { x.fillStyle = Math.random() < 0.8 ? '#ffd98a' : '#9ac6ff'; x.fillRect(wx, wy, 3, 4); }
+  }
+  for (let i = 0; i < 4200; i++) { const y = 322 + Math.pow(Math.random(), 0.7) * 190, a = 0.35 + Math.random() * 0.6, r = Math.random(); x.fillStyle = r < 0.7 ? 'rgba(255,200,120,' + a + ')' : r < 0.85 ? 'rgba(255,255,255,' + a + ')' : 'rgba(255,90,70,' + a + ')'; x.fillRect(Math.random() * 1024, y, 2, 2); }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = maxAniso; return t;
+}
 function buildOffice() {
   const H = 3.6, S = HALF, XS = 38; // building is 76 (x) by 88 (z)
   // outer walls with a window band
   const wm = stdMat({ map: officeWallTex, emissiveMap: officeWallTex, emissive: 0xffffff, emissiveIntensity: 0.4, envMapIntensity: 0.2 });
-  [[0, -S - 1, XS * 2 + 4, 2], [0, S + 1, XS * 2 + 4, 2], [-XS - 1, 0, 2, S * 2 + 4], [XS + 1, 0, 2, S * 2 + 4]].forEach((w) => { mk(new THREE.BoxGeometry(w[2], H, w[3]), wm, w[0], H / 2, w[1]); addCol(w[0], w[1], w[2], w[3], H); });
+  [[0, -S - 1, XS * 2 + 4, 2], [0, S + 1, XS * 2 + 4, 2], [-XS - 1, 0, 2, S * 2 + 4], [XS + 1, -27.5, 2, 37], [XS + 1, 27.5, 2, 37]].forEach((w) => { mk(new THREE.BoxGeometry(w[2], H, w[3]), wm, w[0], H / 2, w[1]); addCol(w[0], w[1], w[2], w[3], H); });
   // ceiling (single-sided: invisible from above so the menu camera can look down into the floor)
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(XS * 2, S * 2), stdMat({ color: 0xd8d3c7, roughness: 1, envMapIntensity: 0.1 }));
   ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil);
@@ -550,7 +562,7 @@ function buildOffice() {
   tile.rotation.x = -Math.PI / 2; tile.position.y = 0.02; tile.receiveShadow = true; world.add(tile);
   // gates = stairwell doors
   GATES.length = 0;
-  [[22.5, -S + 2.5], [-22.5, -S + 2.5], [22.5, S - 2.5], [-22.5, S - 2.5], [-XS + 2.5, -S + 2.5], [XS - 2.5, S - 2.5], [-XS + 2.5, S - 2.5], [XS - 2.5, -S + 2.5], [-XS + 2.5, 0], [XS - 2.5, 0]].forEach((g) => GATES.push(g));
+  [[22.5, -S + 2.5], [-22.5, -S + 2.5], [22.5, S - 2.5], [-22.5, S - 2.5], [-XS + 2.5, -S + 2.5], [XS - 2.5, S - 2.5], [-XS + 2.5, S - 2.5], [XS - 2.5, -S + 2.5], [-XS + 2.5, 0], [XS - 2.5, -17]].forEach((g) => GATES.push(g)); // east-middle gate moved to z=-17 (aisle between pod rows) to make room for the lounge
   const gm = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a1a, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
   GATES.forEach((g) => { const s = new THREE.Sprite(gm); s.scale.set(4, 4, 1); s.position.set(g[0] * 1.02, 2.6, g[1] * 1.02); world.add(s); });
   const shaftM = stdMat({ color: 0xe9e2d2, roughness: 0.7 }), steel = stdMat({ color: 0xaab2ba, metalness: 0.8, roughness: 0.3, envMapIntensity: 1 }), frame = stdMat({ color: 0x2a2e34, roughness: 0.6 }), ind = new THREE.MeshBasicMaterial({ color: 0x3dff7a });
@@ -635,6 +647,7 @@ function buildOffice() {
     });
     // cubicle pods: back-to-back rows of 4 desks running east-west (end caps face the corridor), entered from E-W aisles
     [17.5, 30.9].forEach((px0) => [-29.75, -21.25, -12.75, -4.25, 4.25, 12.75, 21.25, 29.75].forEach((pz) => {
+      if (s > 0 && Math.abs(pz) === 4.25) return; // east side: these four pods make way for the lounge
       const px = s * px0;
       B.add(px, 0.75, pz, 8.4, 1.5, 0.08, 0xc9a46c); B.add(px, 1.52, pz, 8.4, 0.06, 0.12, 0x8396ab);
       B.add(px - 4.3, 0.75, pz, 0.12, 1.5, 3.6, 0x8396ab); B.add(px + 4.3, 0.75, pz, 0.12, 1.5, 3.6, 0x8396ab);
@@ -653,6 +666,54 @@ function buildOffice() {
     // wall-mounted TVs on the outside of the core's side walls (2 per side = 4): beside meeting room N2 (z=-24) and the pantry/S2 wall (z=22), facing the desks
     [-24, 22].forEach((tz) => { mk(new THREE.BoxGeometry(0.08, 0.9, 1.5), dark, s * 8.24, 2.2, tz, 0, false); mk(new THREE.BoxGeometry(0.02, 0.8, 1.4), new THREE.MeshBasicMaterial({ color: 0x3a78b8 }), s * 8.29, 2.2, tz, 0, false); });
   });
+  // ---- east lounge (휴게실), x 12.5..38, z -9..9: four small meeting rooms against the north/south walls, pull-up bar corner (north-east, left as you enter), tiered seating (south wall, next to the rooms), bar tables with plants in the middle, bar table in front of the big window ----
+  {
+    const LX0 = 12.5, LX1 = 38, LZ = 9;
+    // window wall: sill + header + glass + mullions, with a night-city view behind
+    mk(new THREE.BoxGeometry(2, 0.9, LZ * 2), wm, 39, 0.45, 0, 0, true); mk(new THREE.BoxGeometry(2, 0.6, LZ * 2), wm, 39, 3.3, 0, 0, true); addCol(39, 0, 2, LZ * 2, H);
+    mk(new THREE.BoxGeometry(0.06, 2.1, LZ * 2), stdMat({ color: 0xa8cfe6, transparent: true, opacity: 0.15, roughness: 0.05, metalness: 0.2, depthWrite: false }), 37.97, 1.95, 0, 0, false);
+    [-9, -6, -3, 0, 3, 6, 9].forEach((z) => B.add(37.95, 1.95, z, 0.12, 2.1, 0.14, 0x2a2e34));
+    const city = new THREE.Mesh(new THREE.PlaneGeometry(80, 40), new THREE.MeshBasicMaterial({ map: mkCityTex(), fog: false })); city.position.set(52, 8, 0); city.rotation.y = -Math.PI / 2; world.add(city);
+    // walls: north + south solid, west with a wide entrance (z -2.4..2.4) under a LOUNGE sign
+    slab(LX0, LX1, -LZ - 0.1, -LZ + 0.1, H, pm, true); slab(LX0, LX1, LZ - 0.1, LZ + 0.1, H, pm, true);
+    slab(LX0 - 0.1, LX0 + 0.1, -LZ, -2.4, H, pm, true); slab(LX0 - 0.1, LX0 + 0.1, 2.4, LZ, H, pm, true);
+    mk(new THREE.BoxGeometry(0.2, H - 2.7, 4.8), pm, LX0, 2.7 + (H - 2.7) / 2, 0, 0, true);
+    const ls = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 0.56), new THREE.MeshBasicMaterial({ map: signTex('LOUNGE', '휴게실') })); ls.position.set(LX0 - 0.12, 3.1, 0); ls.rotation.y = -Math.PI / 2; world.add(ls);
+    B.add(25.25, 0.012, 0, LX1 - LX0, 0.024, LZ * 2, 0xa4825c); // warm wood floor
+    const pl = new THREE.PointLight(0xffd9a0, 1.0, 24, 2); pl.position.set(25, 3.0, 0); world.add(pl);
+    // four small glass meeting rooms, flush against the lounge's north and south walls (two per wall), doors onto the open middle
+    [16.6, 25].forEach((cx) => [-1, 1].forEach((r) => {
+      const x0 = cx - 4, x1 = cx + 4, zf = r * 6, zb = r * LZ, za = Math.min(zf, zb), zz = Math.max(zf, zb), zc = r * 7.5;
+      slab(x0 - 0.1, x0 + 0.1, za, zz, H, glass, false); slab(x1 - 0.1, x1 + 0.1, za, zz, H, glass, false);
+      slab(x0, cx - 0.8, zf - 0.1, zf + 0.1, H, glass, false); slab(cx + 0.8, x1, zf - 0.1, zf + 0.1, H, glass, false);
+      mk(new THREE.BoxGeometry(4.4, 0.08, 1.0), wood, cx, 0.75, zc, 0, true); mk(new THREE.BoxGeometry(3.8, 0.7, 0.6), dark, cx, 0.36, zc, 0, true); addCol(cx, zc, 4.4, 1.0, 0.8);
+      for (let i = 0; i < 3; i++) [-1, 1].forEach((k) => { const xc = cx - 1.5 + i * 1.5; B.add(xc, 0.48, zc + k * 0.95, 0.5, 0.07, 0.5, 0x262a31); B.add(xc, 0.8, zc + k * 1.18, 0.5, 0.55, 0.07, 0x262a31); });
+      mk(new THREE.BoxGeometry(2.4, 1.0, 0.05), white, cx, 1.7, zb - r * 0.15, 0, false);
+    }));
+    // window-end NORTH corner (left as you walk in): pull-up / chin-up frame, dip bars and gym rings over a rubber mat
+    B.add(33.8, 0.03, -6.7, 8, 0.03, 4.6, 0x2b2e34);
+    [31.2, 36.0].forEach((x) => B.add(x, 1.3, -8.4, 0.12, 2.6, 0.12, 0x15171b)); B.add(33.6, 2.55, -8.4, 4.92, 0.07, 0.12, 0x15171b); // frame
+    B.add(33.6, 2.4, -8.4, 4.8, 0.05, 0.05, 0xa9afb7); B.add(33.6, 1.75, -8.4, 4.8, 0.05, 0.05, 0xa9afb7); // chin-up bars (high and low)
+    [32.6, 34.6].forEach((x) => { B.add(x, 2.15, -8.4, 0.03, 0.5, 0.03, 0x15171b); B.add(x, 1.88, -8.4, 0.3, 0.04, 0.04, 0xb0252b); }); // hanging rings
+    addCol(33.6, -8.4, 5.0, 0.3, 2.6);
+    [-1, 1].forEach((k) => { const z = -6.9 + k * 0.4; [34.8, 36.8].forEach((x) => B.add(x, 0.55, z, 0.07, 1.1, 0.07, 0x15171b)); B.add(35.8, 1.1, z, 2.2, 0.05, 0.05, 0xa9afb7); }); // parallel (dip) bars
+    addCol(35.8, -6.9, 2.3, 1.0, 1.1);
+    // tiered seating along the south wall, right beside the south meeting rooms and facing the middle of the lounge (steps rise toward the wall), with cushions
+    [0, 1, 2].forEach((i) => {
+      const h = 0.3 * (i + 1), zc = 5.5 + 1.4 * i;
+      B.add(33.5, h / 2, zc, 8.6, h, 1.4, 0xb48a5c); addCol(33.5, zc, 8.6, 1.4, h);
+      for (let k = 0; k < 5; k++) B.add(30.4 + k * 1.7, h + 0.05, zc, 1.0, 0.1, 0.9, [0x3f6e8c, 0xd9a441, 0x8c3f4a, 0x4a7a5a][(i + k) % 4]);
+    });
+    // four round bar tables in the open middle of the lounge, three stools each, and small potted plants on top
+    [[19, -3.3], [19, 3.3], [25, -3.3], [25, 3.3]].forEach((q) => {
+      const tx = q[0], tz = q[1];
+      mk(new THREE.CylinderGeometry(0.6, 0.6, 0.06, 20), wood, tx, 1.1, tz, 0, true); B.add(tx, 0.55, tz, 0.1, 1.1, 0.1, 0x15171b); B.add(tx, 0.03, tz, 0.6, 0.05, 0.6, 0x15171b); addCol(tx, tz, 1.2, 1.2, 1.1);
+      [[0.3, 0.12], [-0.22, 0.24], [-0.06, -0.3]].forEach((o) => { const px = tx + o[0], pz = tz + o[1]; B.add(px, 1.18, pz, 0.14, 0.1, 0.14, 0xb5654a); B.add(px, 1.3, pz, 0.18, 0.16, 0.18, 0x3f7a4a); B.add(px, 1.41, pz, 0.1, 0.09, 0.1, 0x58a064); });
+      for (let i = 0; i < 3; i++) { const an = i * 2.094 + 0.5, sx = tx + Math.cos(an) * 0.95, sz = tz + Math.sin(an) * 0.95; B.add(sx, 0.7, sz, 0.38, 0.06, 0.38, 0x8c3f4a); B.add(sx, 0.35, sz, 0.06, 0.7, 0.06, 0x15171b); B.add(sx, 0.02, sz, 0.34, 0.04, 0.34, 0x15171b); }
+    });
+    mk(new THREE.BoxGeometry(0.8, 0.06, 6.2), wood, 37.5, 1.08, 0, 0, true); B.add(37.5, 0.54, 0, 0.7, 1.05, 6.0, 0x2a2d33); addCol(37.5, 0, 0.8, 6.2, 1.1);
+    [-2.4, -1.2, 0, 1.2, 2.4].forEach((z) => { B.add(36.6, 0.72, z, 0.4, 0.06, 0.4, 0x8c3f4a); B.add(36.6, 0.36, z, 0.06, 0.72, 0.06, 0x15171b); B.add(36.6, 0.02, z, 0.35, 0.04, 0.35, 0x15171b); });
+  }
   B.build(stdMat({ color: 0xffffff, roughness: 0.8, envMapIntensity: 0.3 }), true);
   SC.build(new THREE.MeshBasicMaterial({ color: 0xffffff }), false);
   // ceiling light panels (some dead for atmosphere)
@@ -664,7 +725,7 @@ function buildOffice() {
 /* ---- map: Training Range (one big DSR meeting room; the player cannot move) ---- */
 const TR = { pz: -2.5, slots: [[-2.6, -15.5], [0, -15.5], [2.6, -15.5]], list: [], last: [], t: [0, 0, 0] }, TRAIN_HITS = 5, TRAIN_DIST = 10; // Training Range: player-to-zombie distance in metres
 const isTrain = () => curMap === 'training' || curMap === 'sandbag', trainHits = () => curMap === 'sandbag' ? 8 : TRAIN_HITS;
-const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani'];
+const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural'];
 let sbLayout = 'front'; // Sandbag layout: 'front' = 3 random targets ahead, 'line' = every zombie kneeling in a row along the left wall
 try { const sv = localStorage.getItem('layoutsniper.sbLayout'); if (sv === 'front' || sv === 'line') sbLayout = sv; } catch (e) { /* storage unavailable */ }
 const sbLine = () => curMap === 'sandbag' && sbLayout === 'line';
@@ -1066,10 +1127,11 @@ TYPES.jjiru = Object.assign({}, WALKER_BASE, { speed: 1.5, score: 120, lean: 0.2
 TYPES.huru = Object.assign({}, WALKER_BASE, { whiteHead: true, bald: true, lightning: 0.5 }); // white head; 50% chance to be struck by lightning near the player (or on appearing in practice modes)
 const whiteHeadMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.7 });
 TYPES.huru.headSkin = whiteHeadMat; TYPES.judalgeun = Object.assign({}, WALKER_BASE); TYPES.opl = Object.assign({}, WALKER_BASE); // walker clones: only the names differ
-TYPES.tongyeongj = Object.assign({}, TYPES.judalgeun); // copy of judalgeun (주딸근): same stats and look, only the name differs
+TYPES.tongyeongj = Object.assign({}, TYPES.judalgeun); // copy of judalgeun (Joo딸근): same stats and look, only the name differs
+TYPES.jjakbural = Object.assign({}, WALKER_BASE, { handsUp: true }); // plain walker stats; in the practice modes it kneels with both hands up (punishment pose) instead of hands on head
 const dressMat = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.72, emissive: 0x2c2b28, side: THREE.DoubleSide }), veilMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, emissive: 0x333333, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
 TYPES.ongmani = Object.assign({}, TYPES.johnson, { scale: 1.45, skin: undefined, cloth: dressMat, dress: true, glove: true }); // johnson's stats but smaller, with normal walker skin (random skin tone), in a white wedding dress
-const MENU_TYPES = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani'];
+const MENU_TYPES = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural'];
 const enemies = [], projectiles = [];
 const boomLight = new THREE.PointLight(0x9cff4a, 0, 26, 2); scene.add(boomLight); let boomT = 0;
 const poolGeo = new THREE.CircleGeometry(1, 18).rotateX(-Math.PI / 2), pools = []; let poolI = 0;
@@ -1079,13 +1141,13 @@ function updatePools(dt) { for (const p of pools) { if (!p.m.visible) continue; 
 const acidGeo = new THREE.SphereGeometry(0.13, 10, 8), acidMat = new THREE.MeshBasicMaterial({ color: 0xb6ff3a, fog: false });
 const acidGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x7aff20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
 const seen = {};
-const INTRO = { runner: ['삼드', 'Fast and fragile'], tongyeongj: ['통영J', 'Plain and steady'], ongmani: ['옹마니', 'The bride. Huge and slow. Aim for the head'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['킥ㄱ우', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['리짜이밍', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥민', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
+const INTRO = { runner: ['삼드', 'Fast and fragile'], tongyeongj: ['통영J', 'Plain and steady'], jjakbural: ['짝부랄', 'Plain and steady'], ongmani: ['옹마니', 'The bride. Huge and slow. Aim for the head'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['킥ㄱ우', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['리짜이밍', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥min', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
 function announce(t) { if (seen[t] || !INTRO[t]) return; seen[t] = 1; toast('New: ' + INTRO[t][0], INTRO[t][1], 2800); }
 function clearFx() { for (const p of projectiles) scene.remove(p.mesh); projectiles.length = 0; for (const p of pools) p.m.visible = false; for (const k in seen) delete seen[k]; }
 
 /* ---- name tags (temporary): edit the names / heights here ---- */
-const ZOMBIE_NAMES = { runner: '삼드', ongmani: '옹마니', tongyeongj: '통영J', brute: '리짜이밍', crawler: '노시드', spitter: '킥ㄱ우', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: '주딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥민', ybam: 'Y뱀' };
-const TAG_Y = { runner: 2.2, ongmani: 2.05, tongyeongj: 2.2, brute: 2.0, crawler: 1.15, spitter: 2.3, bloater: 2.05, riot: 2.25, mukking: 2.4, godu: 2.15, huru: 2.2, judalgeun: 2.2, opl: 2.2, jjiru: 2.1, geobuk: 2.3, johnson: 2.0, dongmin: 2.25, ybam: 2.15 }; // height above the feet (before the zombie's own scale)
+const ZOMBIE_NAMES = { runner: '삼드', jjakbural: '짝부랄', ongmani: '옹마니', tongyeongj: '통영J', brute: '리짜이밍', crawler: '노시드', spitter: '킥ㄱ우', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: 'Joo딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥min', ybam: 'Y뱀' };
+const TAG_Y = { runner: 2.2, jjakbural: 2.2, ongmani: 2.05, tongyeongj: 2.2, brute: 2.0, crawler: 1.15, spitter: 2.3, bloater: 2.05, riot: 2.25, mukking: 2.4, godu: 2.15, huru: 2.2, judalgeun: 2.2, opl: 2.2, jjiru: 2.1, geobuk: 2.3, johnson: 2.0, dongmin: 2.25, ybam: 2.15 }; // height above the feet (before the zombie's own scale)
 const tagMats = {};
 function tagMat(type) {
   if (tagMats[type]) return tagMats[type];
@@ -1380,7 +1442,7 @@ function startWave(n) {
   W.n = n; W.toSpawn = WAVE_TYPES.length - 4 + n * 4; W.queue = waveQueue(); W.spawnT = 2.2; W.state = 'active'; // wave 1 = one of every type (17), +4 more each wave
   toast('Wave ' + n, n === 1 ? 'Hold the floor' : 'They are coming faster', 2000);
 }
-const WAVE_TYPES = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'mukking', 'godu', 'brute', 'spitter', 'bloater', 'johnson', 'dongmin', 'riot', 'tongyeongj', 'ongmani']; // every zombie type is in play from wave 1
+const WAVE_TYPES = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'mukking', 'godu', 'brute', 'spitter', 'bloater', 'johnson', 'dongmin', 'riot', 'tongyeongj', 'ongmani', 'jjakbural']; // every zombie type is in play from wave 1
 function waveQueue() { const q = WAVE_TYPES.slice(); for (let i = q.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [q[i], q[j]] = [q[j], q[i]]; } return q; } // shuffled: each type shows up at least once per wave
 function pickType() {
   if (W.queue && W.queue.length) return W.queue.pop();
@@ -1615,7 +1677,9 @@ function animKneel(e, t) {
   const A = e.arms, br = Math.sin(t * 1.6 + e.wob) * 0.012, sh = Math.sin(t * 17 + e.wob) * 0.012;
   e.body.position.y = -0.36 + br; e.body.rotation.x = 0.03 + e.leanOff * 0.5; e.spine.rotation.y = 0; e.spine.rotation.z = 0;
   e.thighs[0].rotation.x = e.thighs[1].rotation.x = -0.05; e.shins[0].rotation.x = e.shins[1].rotation.x = 1.5;
-  for (let k = 0; k < 2; k++) { const a = A[k], sd = k ? 1 : -1; a.up.rotation.x = -2.5 + sh; a.up.rotation.z = sd * 0.4; a.fo.rotation.x = -2.0; a.fo.rotation.z = -sd * 0.7; }
+  for (let k = 0; k < 2; k++) { const a = A[k], sd = k ? 1 : -1;
+    if (e.cfg.handsUp) { a.up.rotation.x = -3.0 + sh; a.up.rotation.z = sd * 0.16; a.fo.rotation.x = -0.08; a.fo.rotation.z = 0; } // punishment pose: both arms straight up
+    else { a.up.rotation.x = -2.5 + sh; a.up.rotation.z = sd * 0.4; a.fo.rotation.x = -2.0; a.fo.rotation.z = -sd * 0.7; } }
   e.head.rotation.set(0.2, 0, e.tilt * 0.4 + Math.sin(t * 0.8 + e.wob) * 0.03); e.jaw.rotation.x = e.cfg.jaw * 0.4;
   for (let i = 0; i < e.strips.length; i++) e.strips[i].rotation.x = Math.sin(t * 2 + i) * 0.1;
 }
@@ -1730,8 +1794,8 @@ $('rankBtn').addEventListener('click', openRank); $('rankBtn2').addEventListener
 $('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('layoutsniper.best'); } catch (e) { /* ignore */ } renderRank(); } });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && rankOpen) closeRank(); });
 /* ---- Villain List: a menu tile (next to the maps) that shows every zombie type ---- */
-const VILLAIN_ORDER = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'spitter', 'bloater', 'riot', 'dongmin', 'mukking', 'brute', 'godu', 'johnson', 'tongyeongj', 'ongmani'];
-const VILLAIN_NOTES = { huru: 'Plain and steady. Nothing special.', judalgeun: 'Plain and steady. Nothing special.', opl: 'Plain and steady. Nothing special.', jjiru: 'Bow-legged waddle. Slow and in pain.', geobuk: 'Taller, neck pushed forward. Head leads the way.', ybam: 'Shoulders hiked up to the ears.', runner: 'Fast and fragile.', tongyeongj: 'Plain and steady. Nothing special.', crawler: 'Low profile. Aim low.', spitter: 'Acid from a distance.', bloater: 'Explodes when popped. Shoot from afar.', riot: 'Armored. Aim for the gaps.', dongmin: 'Armored. Aim for the gaps.', mukking: 'Big appetite. Big trouble.', brute: 'Heavy and relentless. Drops supplies.', godu: 'Even bigger. Even hungrier.', johnson: 'Giant. Tough body, weak head.', ongmani: 'The bride. Smaller than Johnson, same tough body and weak head.' };
+const VILLAIN_ORDER = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'spitter', 'bloater', 'riot', 'dongmin', 'mukking', 'brute', 'godu', 'johnson', 'tongyeongj', 'ongmani', 'jjakbural'];
+const VILLAIN_NOTES = { huru: 'Plain and steady. Nothing special.', judalgeun: 'Plain and steady. Nothing special.', opl: 'Plain and steady. Nothing special.', jjiru: 'Bow-legged waddle. Slow and in pain.', geobuk: 'Taller, neck pushed forward. Head leads the way.', ybam: 'Shoulders hiked up to the ears.', runner: 'Fast and fragile.', tongyeongj: 'Plain and steady. Nothing special.', crawler: 'Low profile. Aim low.', spitter: 'Acid from a distance.', bloater: 'Explodes when popped. Shoot from afar.', riot: 'Armored. Aim for the gaps.', dongmin: 'Armored. Aim for the gaps.', mukking: 'Big appetite. Big trouble.', brute: 'Heavy and relentless. Drops supplies.', godu: 'Even bigger. Even hungrier.', johnson: 'Giant. Tough body, weak head.', ongmani: 'The bride. Smaller than Johnson, same tough body and weak head.', jjakbural: 'Plain and steady. Nothing special.' };
 let villainsOpen = false;
 /* Thumbnails: each zombie is built with the same makeZombie() as in the game, posed, rendered once into a small render target and cached as an image. */
 const thumbCache = {}; let thumbScene = null, thumbCam = null, thumbRT = null;
