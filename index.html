@@ -666,7 +666,7 @@ function buildOffice() {
     // wall-mounted TVs on the outside of the core's side walls (2 per side = 4): beside meeting room N2 (z=-24) and the pantry/S2 wall (z=22), facing the desks
     [-24, 22].forEach((tz) => { mk(new THREE.BoxGeometry(0.08, 0.9, 1.5), dark, s * 8.24, 2.2, tz, 0, false); mk(new THREE.BoxGeometry(0.02, 0.8, 1.4), new THREE.MeshBasicMaterial({ color: 0x3a78b8 }), s * 8.29, 2.2, tz, 0, false); });
   });
-  // ---- east lounge (휴게실), x 12.5..38, z -9..9: four small meeting rooms against the north/south walls, pull-up bar corner (north-east, left as you enter), tiered seating (south wall, next to the rooms), bar tables with plants in the middle, bar table in front of the big window ----
+  // ---- east lounge (휴게실), x 12.5..38, z -9..9: four small meeting rooms against the north/south walls, pull-up bar corner (north-east, left as you enter), tiered seating (south wall, next to the rooms), one long bar table with plants in the middle, bar table in front of the big window ----
   {
     const LX0 = 12.5, LX1 = 38, LZ = 9;
     // window wall: sill + header + glass + mullions, with a night-city view behind
@@ -704,13 +704,9 @@ function buildOffice() {
       B.add(33.5, h / 2, zc, 8.6, h, 1.4, 0xb48a5c); addCol(33.5, zc, 8.6, 1.4, h);
       for (let k = 0; k < 5; k++) B.add(30.4 + k * 1.7, h + 0.05, zc, 1.0, 0.1, 0.9, [0x3f6e8c, 0xd9a441, 0x8c3f4a, 0x4a7a5a][(i + k) % 4]);
     });
-    // four round bar tables in the open middle of the lounge, three stools each, and small potted plants on top
-    [[19, -3.3], [19, 3.3], [25, -3.3], [25, 3.3]].forEach((q) => {
-      const tx = q[0], tz = q[1];
-      mk(new THREE.CylinderGeometry(0.6, 0.6, 0.06, 20), wood, tx, 1.1, tz, 0, true); B.add(tx, 0.55, tz, 0.1, 1.1, 0.1, 0x15171b); B.add(tx, 0.03, tz, 0.6, 0.05, 0.6, 0x15171b); addCol(tx, tz, 1.2, 1.2, 1.1);
-      [[0.3, 0.12], [-0.22, 0.24], [-0.06, -0.3]].forEach((o) => { const px = tx + o[0], pz = tz + o[1]; B.add(px, 1.18, pz, 0.14, 0.1, 0.14, 0xb5654a); B.add(px, 1.3, pz, 0.18, 0.16, 0.18, 0x3f7a4a); B.add(px, 1.41, pz, 0.1, 0.09, 0.1, 0x58a064); });
-      for (let i = 0; i < 3; i++) { const an = i * 2.094 + 0.5, sx = tx + Math.cos(an) * 0.95, sz = tz + Math.sin(an) * 0.95; B.add(sx, 0.7, sz, 0.38, 0.06, 0.38, 0x8c3f4a); B.add(sx, 0.35, sz, 0.06, 0.7, 0.06, 0x15171b); B.add(sx, 0.02, sz, 0.34, 0.04, 0.34, 0x15171b); }
-    });
+    // one long bar table in the middle of the lounge, at 90 degrees to the window: from the window-end of the meeting rooms (x=29) to the middle of the entrance-side room (x=16.6), no chairs, small potted plants on top
+    mk(new THREE.BoxGeometry(12.4, 0.06, 0.9), wood, 22.8, 1.1, 0, 0, true); B.add(22.8, 0.55, 0, 12.0, 1.1, 0.6, 0x2a2d33); addCol(22.8, 0, 12.4, 0.9, 1.1);
+    [17.6, 19.7, 21.8, 23.9, 26.0, 28.1].forEach((px, i) => { const pz = (i % 2 ? 0.14 : -0.14); B.add(px, 1.18, pz, 0.14, 0.1, 0.14, 0xb5654a); B.add(px, 1.3, pz, 0.18, 0.16, 0.18, 0x3f7a4a); B.add(px, 1.41, pz, 0.1, 0.09, 0.1, 0x58a064); });
     mk(new THREE.BoxGeometry(0.8, 0.06, 6.2), wood, 37.5, 1.08, 0, 0, true); B.add(37.5, 0.54, 0, 0.7, 1.05, 6.0, 0x2a2d33); addCol(37.5, 0, 0.8, 6.2, 1.1);
     [-2.4, -1.2, 0, 1.2, 2.4].forEach((z) => { B.add(36.6, 0.72, z, 0.4, 0.06, 0.4, 0x8c3f4a); B.add(36.6, 0.36, z, 0.06, 0.72, 0.06, 0x15171b); B.add(36.6, 0.02, z, 0.35, 0.04, 0.35, 0x15171b); });
   }
