@@ -2009,7 +2009,9 @@ function saveGame() {
     // saving pushes the newest save to the "Previous" slot, so an older save is never overwritten by accident;
     // a save at the very same progress (e.g. a double tap) just replaces the newest one instead of pushing it out
     const raw = localStorage.getItem(SAVE_KEY), old = readSave(1);
-    if (raw && old && !(old.W.n === d.W.n && old.S.score === d.S.score && old.S.kills === d.S.kills)) localStorage.setItem(SAVE_KEY2, raw);
+    // ...unless the existing "Previous" save is a better record (higher score or more kills than both the new save and the newest one): then it is kept and only the newest slot is overwritten
+    const prev = readSave(2), keepPrev = !!prev && !!old && ((prev.S.score > d.S.score && prev.S.score > old.S.score) || (prev.S.kills > d.S.kills && prev.S.kills > old.S.kills));
+    if (raw && old && !keepPrev && !(old.W.n === d.W.n && old.S.score === d.S.score && old.S.kills === d.S.kills)) localStorage.setItem(SAVE_KEY2, raw);
     localStorage.setItem(SAVE_KEY, JSON.stringify(d));
   } catch (err) { toast('Save failed', 'Storage is not available here', 2400); return false; }
   refreshLoadBtn(); toast('Game saved', 'Wave ' + W.n + ' &middot; score ' + S.score, 1800);
