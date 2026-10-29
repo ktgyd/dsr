@@ -683,11 +683,11 @@ function buildOffice() {
     const pl = new THREE.PointLight(0xffd9a0, 1.0, 24, 2); pl.position.set(25, 3.0, 0); world.add(pl);
     // four small glass meeting rooms, flush against the lounge's north and south walls (two per wall), doors onto the open middle
     [16.6, 25].forEach((cx) => [-1, 1].forEach((r) => {
-      const x0 = cx - 4, x1 = cx + 4, zf = r * 6, zb = r * LZ, za = Math.min(zf, zb), zz = Math.max(zf, zb), zc = r * 7.5;
+      const x0 = cx - 4, x1 = cx + 4, zf = r * 2.8, zb = r * LZ, za = Math.min(zf, zb), zz = Math.max(zf, zb), zc = r * 5.9; // rooms are deeper now (6.2 m) so the table can run front-to-back
       slab(x0 - 0.1, x0 + 0.1, za, zz, H, glass, false); slab(x1 - 0.1, x1 + 0.1, za, zz, H, glass, false);
       slab(x0, cx - 0.8, zf - 0.1, zf + 0.1, H, glass, false); slab(cx + 0.8, x1, zf - 0.1, zf + 0.1, H, glass, false);
-      mk(new THREE.BoxGeometry(4.4, 0.08, 1.0), wood, cx, 0.75, zc, 0, true); mk(new THREE.BoxGeometry(3.8, 0.7, 0.6), dark, cx, 0.36, zc, 0, true); addCol(cx, zc, 4.4, 1.0, 0.8);
-      for (let i = 0; i < 3; i++) [-1, 1].forEach((k) => { const xc = cx - 1.5 + i * 1.5; B.add(xc, 0.48, zc + k * 0.95, 0.5, 0.07, 0.5, 0x262a31); B.add(xc, 0.8, zc + k * 1.18, 0.5, 0.55, 0.07, 0x262a31); });
+      mk(new THREE.BoxGeometry(1.0, 0.08, 4.4), wood, cx, 0.75, zc, 0, true); mk(new THREE.BoxGeometry(0.6, 0.7, 3.8), dark, cx, 0.36, zc, 0, true); addCol(cx, zc, 1.0, 4.4, 0.8);
+      for (let i = 0; i < 3; i++) [-1, 1].forEach((k) => { const zq = zc - 1.5 + i * 1.5; B.add(cx + k * 0.95, 0.48, zq, 0.5, 0.07, 0.5, 0x262a31); B.add(cx + k * 1.18, 0.8, zq, 0.07, 0.55, 0.5, 0x262a31); });
       mk(new THREE.BoxGeometry(2.4, 1.0, 0.05), white, cx, 1.7, zb - r * 0.15, 0, false);
     }));
     // window-end NORTH corner (left as you walk in): pull-up / chin-up frame, dip bars and gym rings over a rubber mat
@@ -794,6 +794,7 @@ function loadMap(id) {
   moon.color.setHex(M.sun[0]); moon.intensity = M.sun[1]; renderer.toneMappingExposure = M.exp;
   ground.material.map = M.ground[0]; ground.material.color.setHex(M.ground[1]); ground.material.needsUpdate = true;
   M.build();
+  navBuild();
   document.body.classList.toggle('training', isTrain()); document.body.classList.toggle('lockmove', curMap === 'training'); $('s5').hidden = curMap !== 'sandbag';
   rebuildEnv();
 }
@@ -1279,6 +1280,91 @@ function blockedAt(x, z, r) {
   return false;
 }
 
+/* wall test: true when a solid wall (collider taller than a desk) lies on the straight line between two points */
+function wallBetween(x0, z0, x1, z1) {
+  const dx = x1 - x0, dz = z1 - z0;
+  for (let k = 0; k < COL.length; k++) {
+    const c = COL[k]; if (c.h < 1.8) continue;
+    let t0 = 0, t1 = 1;
+    if (Math.abs(dx) < 1e-9) { if (x0 < c.x0 || x0 > c.x1) continue; }
+    else { let a = (c.x0 - x0) / dx, b = (c.x1 - x0) / dx; if (a > b) { const t = a; a = b; b = t; } if (a > t0) t0 = a; if (b < t1) t1 = b; if (t0 > t1) continue; }
+    if (Math.abs(dz) < 1e-9) { if (z0 < c.z0 || z0 > c.z1) continue; }
+    else { let a = (c.z0 - z0) / dz, b = (c.z1 - z0) / dz; if (a > b) { const t = a; a = b; b = t; } if (a > t0) t0 = a; if (b < t1) t1 = b; if (t0 > t1) continue; }
+    return true;
+  }
+  return false;
+}
+
+/* navigation: a grid (0.5 m cells, obstacles grown by the zombie radius) + a flow field flooded outward from the player,
+   so zombies path around wall corners / doors instead of pushing into them */
+const NAV = { cs: 0.5, n: 0, ox: 0, oz: 0, blk: null, dist: null, q: null, ready: false, t: 0, pi: -1, pj: -1, r: 0.5 };
+function navBuild() {
+  const cs = NAV.cs, ext = HALF + 2, n = Math.ceil(ext * 2 / cs); NAV.n = n; NAV.ox = -ext; NAV.oz = -ext;
+  NAV.blk = new Uint8Array(n * n); NAV.dist = new Int32Array(n * n); NAV.q = new Int32Array(n * n); NAV.pi = NAV.pj = -1; NAV.t = 0;
+  for (let k = 0; k < COL.length; k++) {
+    const c = COL[k];
+    const i0 = Math.max(0, Math.ceil((c.x0 - NAV.r - NAV.ox) / cs - 0.5)), i1 = Math.min(n - 1, Math.floor((c.x1 + NAV.r - NAV.ox) / cs - 0.5));
+    const j0 = Math.max(0, Math.ceil((c.z0 - NAV.r - NAV.oz) / cs - 0.5)), j1 = Math.min(n - 1, Math.floor((c.z1 + NAV.r - NAV.oz) / cs - 0.5));
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) NAV.blk[j * n + i] = 1;
+  }
+  NAV.ready = true;
+}
+function navRefresh(dt, force) {
+  if (!NAV.ready) return;
+  NAV.t -= dt; const n = NAV.n, cs = NAV.cs;
+  let pi = Math.floor((P.x - NAV.ox) / cs), pj = Math.floor((P.z - NAV.oz) / cs);
+  if (!force && NAV.t > 0 && pi === NAV.pi && pj === NAV.pj) return;
+  if (!force && NAV.t > 0) return;
+  NAV.t = 0.2; NAV.pi = pi; NAV.pj = pj;
+  pi = clamp(pi, 0, n - 1); pj = clamp(pj, 0, n - 1);
+  const B = NAV.blk, D = NAV.dist, Q = NAV.q; D.fill(-1);
+  let si = pi, sj = pj;
+  if (B[pj * n + pi]) { // player stands inside a grown obstacle: start from the nearest free cell
+    let bd = 1e9;
+    for (let r = 1; r <= 8 && bd === 1e9; r++) for (let j = pj - r; j <= pj + r; j++) for (let i = pi - r; i <= pi + r; i++) {
+      if (i < 0 || j < 0 || i >= n || j >= n || B[j * n + i]) continue;
+      const d = (i - pi) * (i - pi) + (j - pj) * (j - pj); if (d < bd) { bd = d; si = i; sj = j; }
+    }
+    if (bd === 1e9) return;
+  }
+  let qh = 0, qt = 0; D[sj * n + si] = 0; Q[qt++] = sj * n + si;
+  while (qh < qt) {
+    const cur = Q[qh++], ci = cur % n, cj = (cur - ci) / n, nd = D[cur] + 1;
+    if (ci > 0 && D[cur - 1] < 0 && !B[cur - 1]) { D[cur - 1] = nd; Q[qt++] = cur - 1; }
+    if (ci < n - 1 && D[cur + 1] < 0 && !B[cur + 1]) { D[cur + 1] = nd; Q[qt++] = cur + 1; }
+    if (cj > 0 && D[cur - n] < 0 && !B[cur - n]) { D[cur - n] = nd; Q[qt++] = cur - n; }
+    if (cj < n - 1 && D[cur + n] < 0 && !B[cur + n]) { D[cur + n] = nd; Q[qt++] = cur + n; }
+  }
+}
+function navLine(x0, z0, x1, z1) { // true when the straight line stays on free (grown) cells
+  const n = NAV.n, cs = NAV.cs, len = Math.hypot(x1 - x0, z1 - z0), st = Math.max(1, Math.ceil(len / 0.35));
+  for (let i = 1; i <= st; i++) {
+    const f = i / st, ci = Math.floor((x0 + (x1 - x0) * f - NAV.ox) / cs), cj = Math.floor((z0 + (z1 - z0) * f - NAV.oz) / cs);
+    if (ci < 0 || cj < 0 || ci >= n || cj >= n || NAV.blk[cj * n + ci]) return false;
+  }
+  return true;
+}
+function navStep(ci, cj) { // best neighbouring cell (lowest distance to the player), or -1
+  const n = NAV.n, D = NAV.dist, B = NAV.blk, cur = D[cj * n + ci]; let bd = cur >= 0 ? cur : 1e9, bi = -1;
+  for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+    if (!di && !dj) continue; const a = ci + di, b = cj + dj; if (a < 0 || b < 0 || a >= n || b >= n) continue;
+    const v = D[b * n + a]; if (v < 0 || v >= bd) continue;
+    if (di && dj && (B[cj * n + a] || B[b * n + ci])) continue; // no cutting wall corners
+    bd = v; bi = b * n + a;
+  }
+  return bi;
+}
+function navDir(e) { // unit direction [x, z] toward the next waypoint on the way to the player, or null
+  const n = NAV.n, cs = NAV.cs; let ci = Math.floor((e.x - NAV.ox) / cs), cj = Math.floor((e.z - NAV.oz) / cs);
+  if (ci < 0 || cj < 0 || ci >= n || cj >= n) return null;
+  const pts = [];
+  for (let s = 0; s < 6; s++) { const nx = navStep(ci, cj); if (nx < 0) break; ci = nx % n; cj = (nx - ci) / n; pts.push([NAV.ox + (ci + 0.5) * cs, NAV.oz + (cj + 0.5) * cs]); }
+  if (!pts.length) return null;
+  let tg = pts[0];
+  for (let k = pts.length - 1; k > 0; k--) if (navLine(e.x, e.z, pts[k][0], pts[k][1])) { tg = pts[k]; break; } // skip ahead while the way is clear: smooth paths around corners
+  const dx = tg[0] - e.x, dz = tg[1] - e.z, d = Math.hypot(dx, dz) || 1; return [dx / d, dz / d];
+}
+
 /* ---------------- shooting ---------------- */
 const _o = new THREE.Vector3(), _d = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), _f = new THREE.Vector3(), _m = new THREE.Vector3(), _hp = new THREE.Vector3();
 function raySphere(o, d, cx, cy, cz, r) {
@@ -1506,7 +1592,7 @@ function explode(e) {
   for (let i = 0; i < 12; i++) spawnP(e.x, rand(0.3, 1.2), e.z, rand(-4, 4), rand(0.5, 3), rand(-4, 4), rand(0.8, 1.5), 1.7, 0x667040, false, -0.3, 0.35);
   addPool(e.x, e.z, 2.6, 0x2d4a10); sndBoom(); boomT = 0.2; boomLight.position.copy(pos);
   const pd = Math.hypot(P.x - e.x, P.z - e.z);
-  if (pd < R && !P.dead) { hurtPlayer(e.cfg.explode.dmg * rampK(RAMP_DMG) * (1 - 0.7 * pd / R), null); P.shake = 1; }
+  if (pd < R && !P.dead && !wallBetween(e.x, e.z, P.x, P.z)) { hurtPlayer(e.cfg.explode.dmg * rampK(RAMP_DMG) * (1 - 0.7 * pd / R), null); P.shake = 1; }
   for (const o of enemies) { if (o === e || o.dead || o.idle) continue; const d = Math.hypot(o.x - e.x, o.z - e.z); if (d < R) damageEnemy(o, 130 * (1 - 0.6 * d / R), false, pos); }
 }
 function animZ(e, t, moving, atk) {
@@ -1545,6 +1631,7 @@ function animZ(e, t, moving, atk) {
 }
 function updateEnemies(dt, t) {
   pustMat.emissiveIntensity = 1 + 0.5 * Math.sin(t * 4);
+  navRefresh(dt);
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i], cfg = e.cfg;
     if (e.zapT > 0 && !e.dead) { e.zapT -= dt; if (e.zapT <= 0) { zapKill(e); continue; } }
@@ -1562,6 +1649,8 @@ function updateEnemies(dt, t) {
       if (e.deadT > 6) removeEnemy(e); continue;
     }
     const dx = P.x - e.x, dz = P.z - e.z, dist = Math.hypot(dx, dz) || 1, range = cfg.crawl ? 1.1 : 0.7 + 0.45 * e.sc;
+    const wb = dist < range + 1.2 && wallBetween(e.x, e.z, P.x, P.z); // a wall between zombie and player: no melee either way
+    if (e.navT > 0) e.navT -= dt;
     if (cfg.lightning && !e.zapRolled && !P.dead && dist < 4.2) { e.zapRolled = true; if (Math.random() < cfg.lightning) e.zapT = rand(0.35, 0.9); } // first close encounter: 50% chance
     e.stagger = Math.max(0, e.stagger - dt); e.attackCd -= dt; e.twitchT -= dt; if (e.twitchT < -0.01) e.twitchT = rand(2, 6); e.spitAnim = Math.max(0, e.spitAnim - dt);
     let ax = dx / dist, az = dz / dist, moving = false, hold = false, back = false, atk = 0;
@@ -1570,16 +1659,19 @@ function updateEnemies(dt, t) {
       if (dist < cfg.ranged.min) back = true;
       else { hold = true; if (e.spitCd <= 0) { spit(e); e.spitCd = cfg.ranged.cd * rand(0.8, 1.25); } }
     }
-    if (dist < range && !P.dead && e.attackT <= 0 && e.attackCd <= 0 && !hold) { e.attackT = 0.9; e.hit = false; }
+    if (dist < range && !wb && !P.dead && e.attackT <= 0 && e.attackCd <= 0 && !hold) { e.attackT = 0.9; e.hit = false; }
     if (e.attackT > 0) {
       e.attackT -= dt; atk = clamp(1 - e.attackT / 0.9, 0, 1);
       if (cfg.explode) { pustMat.emissiveIntensity = 2.5 + 2 * Math.sin(t * 30); if (e.attackT <= 0) { explode(e); continue; } }
-      else if (atk > 0.55 && !e.hit) { e.hit = true; if (dist < range + 0.5) hurtPlayer(cfg.dmg * rampK(RAMP_DMG) * (1 + Math.min(W.n, 12) * 0.03), e); }
+      else if (atk > 0.55 && !e.hit) { e.hit = true; if (dist < range + 0.5 && !wb) hurtPlayer(cfg.dmg * rampK(RAMP_DMG) * (1 + Math.min(W.n, 12) * 0.03), e); }
       if (e.attackT <= 0) e.attackCd = e.type === 'brute' ? 1.2 : 0.8;
-    } else if (!hold && (back || dist >= range * 0.9)) {
+    } else if (!hold && (back || wb || dist >= range * 0.9)) {
       let dxn = ax, dzn = az;
       if (back) { dxn = -ax; dzn = -az; }
       else {
+        let nv = false;
+        if (NAV.ready && (e.navT > 0 || wb || !navLine(e.x, e.z, P.x, P.z))) { const nd = navDir(e); if (nd) { dxn = nd[0]; dzn = nd[1]; nv = true; } }
+        if (!nv) {
         const look = 2.4;
         if (blockedAt(e.x + ax * look, e.z + az * look, 0.55)) {
           if (!e.avoid) e.avoid = Math.random() < 0.5 ? 1 : -1;
@@ -1587,9 +1679,12 @@ function updateEnemies(dt, t) {
         } else e.avoid = 0;
         const wob = Math.sin(t * 0.9 + e.wob) * 0.18, cw = Math.cos(wob), sw = Math.sin(wob);
         const nx = dxn * cw - dzn * sw, nz = dxn * sw + dzn * cw; dxn = nx; dzn = nz;
+        }
       }
       const sp = e.speed * (e.stagger > 0 ? 0.25 : 1) * (back ? 0.8 : 1);
-      e.x += dxn * sp * dt; e.z += dzn * sp * dt; moving = true; e.phase += sp * dt * 2.2 / e.sc; ax = dxn; az = dzn;
+      e.x += dxn * sp * dt; e.z += dzn * sp * dt; moving = true;
+      e.sT = (e.sT || 0) + dt; if (e.sT > 0.7) { if (e.sx !== undefined && Math.hypot(e.x - e.sx, e.z - e.sz) < 0.25 && dist > range) e.navT = 2; e.sx = e.x; e.sz = e.z; e.sT = 0; } // barely moved for 0.7 s: follow the flow field for a while to get out of the corner
+      e.phase += sp * dt * 2.2 / e.sc; ax = dxn; az = dzn;
     }
     for (let j = i - 1; j >= 0; j--) { const o = enemies[j]; if (o.dead || o.idle) continue; const sx = e.x - o.x, sz = e.z - o.z, d2 = sx * sx + sz * sz, mr = 0.45 * (e.sc + o.sc); if (d2 < mr * mr && d2 > 1e-6) { const d = Math.sqrt(d2), p = (mr - d) * 0.5; e.x += sx / d * p; e.z += sz / d * p; o.x -= sx / d * p; o.z -= sz / d * p; } }
     const o2 = { x: e.x, z: e.z }; pushOut(o2, 0.42 * e.sc); e.x = o2.x; e.z = o2.z;
@@ -1911,6 +2006,7 @@ function meleeStrike() {
     if (e.dead || (e.idle && !e.train)) continue;
     const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz) || 1, reach = w.reach + 0.4 * e.sc;
     if (d > reach) continue;
+    if (wallBetween(P.x, P.z, e.x, e.z)) continue; // a wall in between: the swing cannot reach
     if ((dx * fx + dz * fz) / d < 0.55 && d > 0.9) continue;
     const pt = new THREE.Vector3(e.x - dx / d * 0.3, (e.kneel ? 0.8 : 1.1) * e.sc, e.z - dz / d * 0.3);
     damageEnemy(e, w.dmg, false, pt);
