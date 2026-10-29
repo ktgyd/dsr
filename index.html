@@ -721,7 +721,7 @@ function buildOffice() {
 /* ---- map: Training Range (one big DSR meeting room; the player cannot move) ---- */
 const TR = { pz: -2.5, slots: [[-2.6, -15.5], [0, -15.5], [2.6, -15.5]], list: [], last: [], t: [0, 0, 0] }, TRAIN_HITS = 5, TRAIN_DIST = 10; // Training Range: player-to-zombie distance in metres
 const isTrain = () => curMap === 'training' || curMap === 'sandbag', trainHits = () => curMap === 'sandbag' ? 8 : TRAIN_HITS;
-const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural'];
+const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
 let sbLayout = 'front'; // Sandbag layout: 'front' = 3 random targets ahead, 'line' = every zombie kneeling in a row along the left wall
 try { const sv = localStorage.getItem('layoutsniper.sbLayout'); if (sv === 'front' || sv === 'line') sbLayout = sv; } catch (e) { /* storage unavailable */ }
 const sbLine = () => curMap === 'sandbag' && sbLayout === 'line';
@@ -1127,19 +1127,22 @@ const TYPES = {
   riot: { hp: 220, speed: 1.8, dmg: 18, scale: 1.08, score: 260, lean: 0.08, pose: 'guard', legAmp: 0.45, knee: 0.6, jaw: 0, cloth: clothRiot, helmet: true, armor: true, headMul: 1.1, bodyMul: 0.5, hit: HUM }
 };
 const WALKER_BASE = { hp: 70, speed: 2.0, dmg: 12, scale: 1.0, score: 100, lean: 0.12, pose: 'reach', legAmp: 0.55, knee: 0.9, jaw: 0.15, hit: HUM }; // template only: the plain walker is no longer spawned
-TYPES.johnson = { hp: 600, speed: 1.7, dmg: 40, scale: 1.8, score: 600, lean: 0.08, pose: 'heavy', legAmp: 0.45, knee: 0.5, jaw: 0.65, headScale: 1.1, bald: true, skin: skinMuscle, cloth: skinMuscle, eye: eyePale, headMul: 2.6, bodyMul: 0.6, hit: HUM }; // giant skinless-muscle titan type
+const furMat = new THREE.MeshStandardMaterial({ color: 0x141416, roughness: 1 }), gorFace = new THREE.MeshStandardMaterial({ color: 0x2b2826, roughness: 0.9 });
+TYPES.johnson = { hp: 600, speed: 1.7, dmg: 40, scale: 1.65, score: 600, lean: 0.12, pose: 'heavy', legAmp: 0.45, knee: 0.5, jaw: 0.65, headScale: 1.1, bald: true, gorilla: true, armX: 0.4, skin: furMat, cloth: furMat, eye: eyePale, headMul: 2.6, bodyMul: 0.6, hit: HUM }; // giant skinless-muscle titan type
 TYPES.dongmin = Object.assign({}, TYPES.riot); // copy of riot: same stats and look, only the name differs
 TYPES.ybam = Object.assign({}, WALKER_BASE, { shrug: 0.22, lean: 0.14, hit: { head: [0, 1.63, 0.21], body: HUM.body } }); // walker with hugely raised shoulders
-TYPES.geobuk = Object.assign({}, WALKER_BASE, { hp: 75, speed: 1.9, score: 110, scale: 1.1, lean: 0.22, neck: 0.2, hit: { head: [0.2, 1.64, 0.21], body: HUM.body } }); // taller, forward-head (turtle neck)
+TYPES.geobuk = Object.assign({}, WALKER_BASE, { hp: 75, speed: 1.9, score: 110, scale: 1.2, lean: 0.22, neck: 0.2, hit: { head: [0.2, 1.64, 0.21], body: HUM.body } }); // taller, forward-head (turtle neck)
 TYPES.jjiru = Object.assign({}, WALKER_BASE, { speed: 1.5, score: 120, lean: 0.2, legAmp: 0.32, knee: 0.45, bow: 0.3 }); // bow-legged, painful waddle
 TYPES.huru = Object.assign({}, WALKER_BASE, { whiteHead: true, bald: true, lightning: 0.5 }); // white head; 50% chance to be struck by lightning near the player (or on appearing in practice modes)
 const whiteHeadMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.7 });
 TYPES.huru.headSkin = whiteHeadMat; TYPES.judalgeun = Object.assign({}, WALKER_BASE); TYPES.opl = Object.assign({}, WALKER_BASE); // walker clones: only the names differ
-TYPES.tongyeongj = Object.assign({}, TYPES.judalgeun); // copy of judalgeun (Joo딸근): same stats and look, only the name differs
+TYPES.tongyeongj = Object.assign({}, TYPES.judalgeun, { scale: 1.08 }); // copy of judalgeun (Joo딸근): same stats and look, only the name differs
 TYPES.jjakbural = Object.assign({}, WALKER_BASE, { handsUp: true }); // plain walker stats; in the practice modes it kneels with both hands up (punishment pose) instead of hands on head
 const dressMat = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.72, emissive: 0x2c2b28, side: THREE.DoubleSide }), veilMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, emissive: 0x333333, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
-TYPES.ongmani = Object.assign({}, TYPES.johnson, { scale: 1.45, skin: undefined, cloth: dressMat, dress: true, glove: true }); // johnson's stats but smaller, with normal walker skin (random skin tone), in a white wedding dress
-const MENU_TYPES = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural'];
+TYPES.ongmani = Object.assign({}, TYPES.johnson, { scale: 1.33, gorilla: false, lean: 0.08, armX: 0.27, skin: undefined, cloth: dressMat, dress: true, glove: true }); // johnson's stats but smaller, with normal walker skin (random skin tone), in a white wedding dress
+const bullMat = new THREE.MeshStandardMaterial({ color: 0x6a3d20, roughness: 0.85 }), hornMat = new THREE.MeshStandardMaterial({ color: 0xe8e0c8, roughness: 0.5 }), ringMat = new THREE.MeshStandardMaterial({ color: 0xd9b23a, metalness: 0.8, roughness: 0.3 }), muzzleMat = new THREE.MeshStandardMaterial({ color: 0xc89a86, roughness: 0.8 });
+TYPES.sosung = { hp: 280, speed: 2.5, dmg: 24, scale: 1.15, score: 320, lean: 0, pose: 'heavy', legAmp: 0.75, knee: 0.5, jaw: 0.2, bald: true, bull: true, skin: bullMat, cloth: bullMat, eye: eyeRed, headScale: 1.5, hit: { head: [0.95, 1.0, 0.36], body: [[0.45, 0.98, 0.5], [-0.05, 0.98, 0.55], [-0.55, 0.98, 0.45]] } }; // bull: four-legged bull body with horns
+const MENU_TYPES = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
 const enemies = [], projectiles = [];
 const boomLight = new THREE.PointLight(0x9cff4a, 0, 26, 2); scene.add(boomLight); let boomT = 0;
 const poolGeo = new THREE.CircleGeometry(1, 18).rotateX(-Math.PI / 2), pools = []; let poolI = 0;
@@ -1149,13 +1152,13 @@ function updatePools(dt) { for (const p of pools) { if (!p.m.visible) continue; 
 const acidGeo = new THREE.SphereGeometry(0.13, 10, 8), acidMat = new THREE.MeshBasicMaterial({ color: 0xb6ff3a, fog: false });
 const acidGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x7aff20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
 const seen = {};
-const INTRO = { runner: ['삼드', 'Fast and fragile'], tongyeongj: ['통영J', 'Plain and steady'], jjakbural: ['짝부랄', 'Plain and steady'], ongmani: ['옹마니', 'The bride. Huge and slow. Aim for the head'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['킥ㄱ우', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['리짜이밍', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥min', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
+const INTRO = { runner: ['삼드', 'Fast and fragile'], tongyeongj: ['통영J', 'Plain and steady'], jjakbural: ['짝부랄', 'Plain and steady'], sosung: ['소승h', 'A charging bull. Mind the horns'], ongmani: ['옹마니', 'The bride. Huge and slow. Aim for the head'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['킥ㄱ우', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['리짜이밍', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥min', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
 function announce(t) { if (seen[t] || !INTRO[t]) return; seen[t] = 1; toast('New: ' + INTRO[t][0], INTRO[t][1], 2800); }
 function clearFx() { for (const p of projectiles) scene.remove(p.mesh); projectiles.length = 0; for (const p of pools) p.m.visible = false; for (const k in seen) delete seen[k]; }
 
 /* ---- name tags (temporary): edit the names / heights here ---- */
-const ZOMBIE_NAMES = { runner: '삼드', jjakbural: '짝부랄', ongmani: '옹마니', tongyeongj: '통영J', brute: '리짜이밍', crawler: '노시드', spitter: '킥ㄱ우', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: 'Joo딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥min', ybam: 'Y뱀' };
-const TAG_Y = { runner: 2.2, jjakbural: 2.2, ongmani: 2.05, tongyeongj: 2.2, brute: 2.0, crawler: 1.15, spitter: 2.3, bloater: 2.05, riot: 2.25, mukking: 2.4, godu: 2.15, huru: 2.2, judalgeun: 2.2, opl: 2.2, jjiru: 2.1, geobuk: 2.3, johnson: 2.0, dongmin: 2.25, ybam: 2.15 }; // height above the feet (before the zombie's own scale)
+const ZOMBIE_NAMES = { runner: '삼드', jjakbural: '짝부랄', sosung: '소승h', ongmani: '옹마니', tongyeongj: '통영J', brute: '리짜이밍', crawler: '노시드', spitter: '킥ㄱ우', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: 'Joo딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥min', ybam: 'Y뱀' };
+const TAG_Y = { runner: 2.2, jjakbural: 2.2, ongmani: 2.05, tongyeongj: 2.2, brute: 2.0, crawler: 1.15, spitter: 2.3, bloater: 2.05, riot: 2.25, mukking: 2.4, godu: 2.15, huru: 2.2, judalgeun: 2.2, opl: 2.2, jjiru: 2.1, geobuk: 2.3, johnson: 2.0, dongmin: 2.25, ybam: 2.15, sosung: 2.1 }; // height above the feet (before the zombie's own scale)
 const tagMats = {};
 function tagMat(type) {
   if (tagMats[type]) return tagMats[type];
@@ -1177,7 +1180,7 @@ function makeZombie(type, x, z, idle) {
   const pelvis = mk(G.pelvis, cloth, true); body.add(pelvis);
   const strips = [];
   for (let i = 0; i < 4; i++) { const a = i / 4 * TAU + 0.4, g = grp(upper, Math.cos(a) * 0.17, 0.88, Math.sin(a) * 0.12); g.rotation.y = -a; g.add(mk(G.strip, cloth, false)); strips.push(g); }
-  if (!cfg.armor && !cfg.belly && Math.random() < 0.6) {
+  if (!cfg.armor && !cfg.belly && !cfg.bull && Math.random() < 0.6) {
     const wd = mk(G.wound, woundMat, false); wd.position.set(rand(-0.1, 0.1), rand(1.1, 1.28), 0.135); wd.rotation.z = rand(-0.6, 0.6); upper.add(wd);
     if (Math.random() < 0.6) for (let i = 0; i < 3; i++) { const rb = mk(G.rib, boneMat, false); rb.position.set(wd.position.x, wd.position.y - 0.05 + i * 0.045, 0.15); rb.rotation.z = wd.rotation.z; upper.add(rb); }
   }
@@ -1202,7 +1205,13 @@ function makeZombie(type, x, z, idle) {
     const kn = mk(G.bowKnot, ribbonMat, false); kn.position.set(0, 0.185, 0.03); if (cfg.ribbon) head.add(kn);
   }
   const thighs = [], shins = [];
-  if (!cfg.crawl) {
+  if (cfg.bull) { // four short bull legs: front pair then back pair (hooves)
+    for (const lz of [0.5, -0.5]) for (const s of [-1, 1]) {
+      const th = grp(body, s * 0.22, 0.66, lz); th.scale.set(1.5, 0.7, 1.5); th.add(mk(G.thigh, cloth, true));
+      const sh = grp(th, 0, -0.46, 0); sh.add(mk(G.shin, cloth, true));
+      const ft = grp(sh, 0, -0.46, 0); ft.add(mk(G.foot, hornMat, false)); thighs.push(th); shins.push(sh);
+    }
+  } else if (!cfg.crawl) {
     for (const s of [-1, 1]) {
       const th = grp(body, s * 0.1, 0.9, 0); th.add(mk(G.thigh, cloth, true));
       const sh = grp(th, 0, -0.46, 0); sh.add(mk(G.shin, s > 0 ? skin : cloth, true));
@@ -1214,11 +1223,11 @@ function makeZombie(type, x, z, idle) {
   }
   const armX = cfg.armX || 0.27, sh = cfg.shrug || 0, arms = [];
   for (const s of [-1, 1]) {
-    const sd = mk(G.shoulder, cloth, false); sd.position.set(s * armX, 1.43 + sh, 0); upper.add(sd);
+    const sd = mk(G.shoulder, cloth, false); sd.position.set(s * armX, 1.43 + sh, 0); sd.visible = !cfg.bull; upper.add(sd);
     if (sh) { const tr = mk(G.shoulder, cloth, true); tr.position.set(s * armX * 0.55, 1.5 + sh * 0.45, -0.01); tr.scale.set(2.4, 1.2 + sh * 6, 1.9); upper.add(tr); }
-    const up = grp(upper, s * armX, 1.42 + sh, 0); up.add(mk(G.upperArm, cloth, true));
+    const up = grp(upper, s * armX, 1.42 + sh, 0); if (cfg.gorilla) up.scale.set(1.3, 1.4, 1.3); up.visible = !cfg.bull; up.add(mk(G.upperArm, cloth, true));
     const fo = grp(up, 0, -0.3, 0); fo.add(mk(G.foreArm, cfg.glove ? cloth : skin, true));
-    const hd = grp(fo, 0, -0.3, 0); hd.add(mk(G.hand, skin, false)); arms.push({ up: up, fo: fo });
+    const hd = grp(fo, 0, -0.3, 0); if (cfg.gorilla) hd.scale.setScalar(2.0); hd.add(mk(G.hand, skin, false)); arms.push({ up: up, fo: fo });
   }
   let sac = null;
   if (cfg.belly) {
@@ -1232,12 +1241,39 @@ function makeZombie(type, x, z, idle) {
     const sk = mk(G.skirt, cloth, true); sk.position.set(0, 0.68, 0); sk.scale.set(fm, 1, fm); body.add(sk);
     const bl = mk(G.belly, cloth, true); bl.position.set(0, 1.0, 0.1 * fm); bl.scale.set(0.78 * fm, 0.82 * fm, 0.78 * fm); upper.add(bl);
   }
+  if (cfg.gorilla) { // black gorilla: massive chest and shoulders, long arms, heavy brow, dark muzzle, crest
+    torso.scale.set(1.75, 1, 1.6); pelvis.scale.set(1.5, 1, 1.4);
+    for (const sd2 of [-1, 1]) { const sm = mk(new THREE.SphereGeometry(0.2, 12, 10), cloth, true); sm.position.set(sd2 * 0.36, 1.44, 0); sm.scale.set(1.25, 1, 1.15); upper.add(sm); }
+    const back = mk(new THREE.SphereGeometry(0.3, 12, 10), cloth, true); back.position.set(0, 1.25, -0.08); back.scale.set(1.2, 0.9, 0.9); upper.add(back);
+    const brow = mk(new THREE.BoxGeometry(0.22, 0.05, 0.09), gorFace, false); brow.position.set(0, 0.075, 0.125); head.add(brow);
+    const mz = mk(new THREE.SphereGeometry(0.085, 12, 8), gorFace, false); mz.position.set(0, -0.035, 0.15); mz.scale.set(1.25, 0.85, 0.95); head.add(mz);
+    for (const sd2 of [-1, 1]) { const ns = mk(new THREE.SphereGeometry(0.014, 6, 5), nostrilMat, false); ns.position.set(sd2 * 0.025, -0.02, 0.228); head.add(ns); }
+    const crest = mk(new THREE.SphereGeometry(0.1, 12, 8), cloth, false); crest.position.set(0, 0.13, -0.03); crest.scale.set(0.75, 1, 1.25); head.add(crest);
+  }
   if (cfg.dress) { // wedding gown: tiered flared skirt over the legs, waist sash, and a veil behind the head
     [[0.21, 0.52, 0.98, 0.52], [0.46, 0.7, 0.62, 0.1]].forEach((t) => { const sk = mk(new THREE.CylinderGeometry(t[0], t[1], t[2] - t[3], 24, 1, true), dressMat, true); sk.position.y = (t[2] + t[3]) / 2; body.add(sk); });
     const ring = mk(new THREE.TorusGeometry(0.69, 0.025, 6, 28), dressMat, false); ring.rotation.x = Math.PI / 2; ring.position.y = 0.12; body.add(ring); // hem trim
     const sash = mk(new THREE.CylinderGeometry(0.2, 0.2, 0.08, 16, 1, true), dressMat, false); sash.position.y = 0.98; body.add(sash);
     const vl = mk(new THREE.BoxGeometry(0.4, 0.75, 0.02), veilMat, false); vl.position.set(0, -0.14, -0.17); vl.rotation.x = 0.12; head.add(vl);
     const tiara = mk(new THREE.TorusGeometry(0.135, 0.012, 6, 20, Math.PI), dressMat, false); tiara.position.set(0, 0.07, 0.01); tiara.rotation.set(0.1, 0, 0); head.add(tiara);
+  }
+  if (cfg.bull) { // bull torso (horizontal barrel), hump, rump, neck, tail; head moved to the front with horns, ears, muzzle and a nose ring
+    torso.visible = false; pelvis.visible = false; strips.forEach((g) => { g.visible = false; });
+    const blob = (r, x, y, z, sx, sy, sz) => { const m = mk(new THREE.SphereGeometry(r, 16, 12), cloth, true); m.position.set(x, y, z); m.scale.set(sx, sy, sz); upper.add(m); return m; };
+    blob(1, 0, 0.98, -0.05, 0.4, 0.4, 0.85); blob(1, 0, 1.04, 0.42, 0.44, 0.46, 0.46); blob(1, 0, 0.98, -0.55, 0.38, 0.38, 0.4);
+    blob(1, 0, 1.42, 0.42, 0.28, 0.24, 0.34); // shoulder hump
+    const nk2 = mk(new THREE.CylinderGeometry(0.2, 0.28, 0.62, 12), cloth, true); nk2.position.set(0, 1.14, 0.78); nk2.rotation.x = 1.0; upper.add(nk2);
+    const tl = mk(new THREE.CylinderGeometry(0.02, 0.03, 0.7, 6), cloth, false); tl.position.set(0, 0.75, -0.98); tl.rotation.x = -0.2; upper.add(tl);
+    const tf = mk(new THREE.SphereGeometry(0.07, 8, 6), hairMat, false); tf.position.set(0, 0.4, -1.04); upper.add(tf);
+    head.position.set(0, 1.0, 1.02);
+    const hornGeo = new THREE.CylinderGeometry(0.008, 0.035, 0.3, 8);
+    for (const sd2 of [-1, 1]) {
+      const hn = mk(hornGeo, hornMat, false); hn.position.set(sd2 * 0.2, 0.1, 0); hn.rotation.z = -sd2 * 1.15; head.add(hn);
+      const ht = mk(hornGeo, hornMat, false); ht.position.set(sd2 * 0.33, 0.2, 0.02); ht.rotation.z = sd2 * 0.25; ht.scale.set(0.8, 0.7, 0.8); head.add(ht);
+      const er = mk(new THREE.SphereGeometry(0.06, 8, 6), cloth, false); er.position.set(sd2 * 0.16, 0.04, -0.04); er.scale.set(1.3, 0.5, 0.8); head.add(er);
+    }
+    const mz = mk(new THREE.SphereGeometry(0.1, 12, 8), muzzleMat, false); mz.position.set(0, -0.06, 0.17); mz.scale.set(1.15, 0.85, 1.2); head.add(mz);
+    const nr = mk(new THREE.TorusGeometry(0.04, 0.008, 6, 14), ringMat, false); nr.position.set(0, -0.11, 0.27); head.add(nr);
   }
   if (cfg.sac) { sac = mk(G.sac, sacMat, false); sac.position.set(0, 1.5, 0.07); upper.add(sac); }
   if (cfg.armor) { upper.add(mk(G.plate, metalMat, true)); for (const s of [-1, 1]) { const pd = mk(G.pauldron, metalMat, true); pd.position.set(s * 0.3, 1.48, 0); upper.add(pd); } }
@@ -1535,7 +1571,7 @@ function startWave(n) {
   W.n = n; W.toSpawn = WAVE_TYPES.length - 4 + n * 4; W.queue = waveQueue(); W.spawnT = 2.2; W.state = 'active'; // wave 1 = one of every type (17), +4 more each wave
   toast('Wave ' + n, n === 1 ? 'Hold the floor' : 'They are coming faster', 2000);
 }
-const WAVE_TYPES = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'mukking', 'godu', 'brute', 'spitter', 'bloater', 'johnson', 'dongmin', 'riot', 'tongyeongj', 'ongmani', 'jjakbural']; // every zombie type is in play from wave 1
+const WAVE_TYPES = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'mukking', 'godu', 'brute', 'spitter', 'bloater', 'johnson', 'dongmin', 'riot', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung']; // every zombie type is in play from wave 1
 function waveQueue() { const q = WAVE_TYPES.slice(); for (let i = q.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [q[i], q[j]] = [q[j], q[i]]; } return q; } // shuffled: each type shows up at least once per wave
 function pickType() {
   if (W.queue && W.queue.length) return W.queue.pop();
@@ -1615,6 +1651,7 @@ function animZ(e, t, moving, atk) {
     const la = cfg.legAmp * mv, l0 = e.limp && e.limpSide === 0 ? 0.55 : 1, l1 = e.limp && e.limpSide === 1 ? 0.55 : 1;
     e.thighs[0].rotation.x = s * la * l0; e.thighs[1].rotation.x = -s * la * l1;
     e.shins[0].rotation.x = Math.max(0, -c) * cfg.knee * mv * l0 + (e.limp && e.limpSide === 0 ? 0.12 : 0); e.shins[1].rotation.x = Math.max(0, c) * cfg.knee * mv * l1 + (e.limp && e.limpSide === 1 ? 0.12 : 0);
+    if (cfg.bull) for (let i = 2; i < 4; i++) { const sg2 = i === 3 ? s : -s, cc = i === 3 ? -c : c; e.thighs[i].rotation.x = sg2 * la; e.shins[i].rotation.x = Math.max(0, i === 3 ? -c : c) * cfg.knee * mv; }
     if (cfg.bow) { e.thighs[0].rotation.z = -cfg.bow; e.thighs[1].rotation.z = cfg.bow; e.shins[0].rotation.z = cfg.bow * 0.45; e.shins[1].rotation.z = -cfg.bow * 0.45; e.body.position.y -= 0.03; e.spine.rotation.z = c * 0.16 * mv - 0.02; }
   }
   for (let k = 0; k < 2; k++) {
@@ -1634,7 +1671,7 @@ function animZ(e, t, moving, atk) {
     a.up.rotation.x = ux; a.fo.rotation.x = ex; a.up.rotation.z = uz;
   }
   e.head.rotation.z = Math.sin(t * 0.9 + e.wob) * 0.12 + e.tilt;
-  e.head.rotation.x = (cfg.crawl ? -1.0 : 0.1 - (cfg.neck ? 0.3 : 0)) + Math.sin(t * 0.7 + e.wob) * 0.07;
+  e.head.rotation.x = (cfg.bull ? 0.3 : cfg.crawl ? -1.0 : 0.1 - (cfg.neck ? 0.3 : 0)) + Math.sin(t * 0.7 + e.wob) * 0.07;
   e.head.rotation.y = e.twitchT < 0.12 ? Math.sin(t * 60) * 0.4 : 0;
   e.jaw.rotation.x = cfg.jaw + (atk > 0 ? Math.sin(atk * Math.PI) * 0.5 : 0) + (e.spitAnim > 0 ? 0.5 : 0) + Math.sin(t * 3 + e.wob) * 0.04;
   for (let i = 0; i < e.strips.length; i++) e.strips[i].rotation.x = Math.sin(t * 2 + i) * 0.15 + c * 0.2 * mv;
@@ -1652,6 +1689,7 @@ function updateEnemies(dt, t) {
       if (e.exploded) { if (e.deadT > 0.2) removeEnemy(e); continue; }
       const k = clamp(e.deadT / 0.6, 0, 1), ease = 1 - (1 - k) * (1 - k);
       if (cfg.crawl) { e.body.rotation.x = lerp(cfg.lean, 1.57, ease); e.body.position.y = lerp(0.1, 0.02, ease); }
+      else if (cfg.bull) { e.body.rotation.x = 0; e.body.rotation.z = lerp(0, 1.45, ease); e.body.position.y = lerp(0, 0.4, ease); }
       else { e.body.rotation.x = lerp(cfg.lean, e.fallDir * (Math.PI / 2 - 0.12), ease); e.body.position.y = 0; }
       e.arms.forEach((a, idx) => { a.up.rotation.x = lerp(a.up.rotation.x, -0.4 + idx * 0.3, 0.12); a.up.rotation.z = lerp(a.up.rotation.z, (idx ? 1 : -1) * 0.6, 0.12); a.fo.rotation.x = lerp(a.fo.rotation.x, -0.2, 0.12); });
       e.thighs.forEach((th, idx) => { th.rotation.x = lerp(th.rotation.x, idx ? 0.2 : -0.1, 0.1); }); e.shins.forEach((sh) => { sh.rotation.x = lerp(sh.rotation.x, 0.1, 0.1); });
@@ -1798,7 +1836,7 @@ function trainSpawn(i, avoid) {
   if (sbLine()) ty = TRAIN_TYPES[i]; // line mode: one of every zombie, the same one comes back in its spot
   else do { ty = TRAIN_TYPES[(Math.random() * TRAIN_TYPES.length) | 0]; } while (ty === avoid || TR.list.some((z) => z && z.type === ty)); // no duplicate types among the 3 targets
   const e = makeZombie(ty, sl[0], sl[1], true); e.train = true; e.slot = i; e.hits = 0; e.rot = sl[2]; e.root.rotation.y = sl[2];
-  if (!e.cfg.crawl) { const dy = 0.36, h = e.cfg.hit; e.cfg = Object.assign({}, e.cfg, { hit: { head: [h.head[0], h.head[1] - dy, h.head[2]], body: h.body.map((b) => [b[0], b[1] - dy, b[2]]) } }); e.kneel = true; e.tag.position.y -= dy / (e.cfg.sy || 1); }
+  if (!e.cfg.crawl && !e.cfg.bull) { const dy = 0.36, h = e.cfg.hit; e.cfg = Object.assign({}, e.cfg, { hit: { head: [h.head[0], h.head[1] - dy, h.head[2]], body: h.body.map((b) => [b[0], b[1] - dy, b[2]]) } }); e.kneel = true; e.tag.position.y -= dy / (e.cfg.sy || 1); }
   if (e.cfg.lightning && Math.random() < e.cfg.lightning) e.zapT = rand(1.2, 3.2); // practice modes: 50% chance it gets struck shortly after appearing
   TR.list[i] = e; return e;
 }
@@ -1904,8 +1942,8 @@ $('rankBtn').addEventListener('click', openRank); $('rankBtn2').addEventListener
 $('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('layoutsniper.best'); } catch (e) { /* ignore */ } renderRank(); } });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && rankOpen) closeRank(); });
 /* ---- Villain List: a menu tile (next to the maps) that shows every zombie type ---- */
-const VILLAIN_ORDER = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'spitter', 'bloater', 'riot', 'dongmin', 'mukking', 'brute', 'godu', 'johnson', 'tongyeongj', 'ongmani', 'jjakbural'];
-const VILLAIN_NOTES = { huru: 'Plain and steady. Nothing special.', judalgeun: 'Plain and steady. Nothing special.', opl: 'Plain and steady. Nothing special.', jjiru: 'Bow-legged waddle. Slow and in pain.', geobuk: 'Taller, neck pushed forward. Head leads the way.', ybam: 'Shoulders hiked up to the ears.', runner: 'Fast and fragile.', tongyeongj: 'Plain and steady. Nothing special.', crawler: 'Low profile. Aim low.', spitter: 'Acid from a distance.', bloater: 'Explodes when popped. Shoot from afar.', riot: 'Armored. Aim for the gaps.', dongmin: 'Armored. Aim for the gaps.', mukking: 'Big appetite. Big trouble.', brute: 'Heavy and relentless. Drops supplies.', godu: 'Even bigger. Even hungrier.', johnson: 'Giant. Tough body, weak head.', ongmani: 'The bride. Smaller than Johnson, same tough body and weak head.', jjakbural: 'Plain and steady. Nothing special.' };
+const VILLAIN_ORDER = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'spitter', 'bloater', 'riot', 'dongmin', 'mukking', 'brute', 'godu', 'johnson', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
+const VILLAIN_NOTES = { huru: 'Plain and steady. Nothing special.', judalgeun: 'Plain and steady. Nothing special.', opl: 'Plain and steady. Nothing special.', jjiru: 'Bow-legged waddle. Slow and in pain.', geobuk: 'Taller, neck pushed forward. Head leads the way.', ybam: 'Shoulders hiked up to the ears.', runner: 'Fast and fragile.', tongyeongj: 'Plain and steady. Nothing special.', crawler: 'Low profile. Aim low.', spitter: 'Acid from a distance.', bloater: 'Explodes when popped. Shoot from afar.', riot: 'Armored. Aim for the gaps.', dongmin: 'Armored. Aim for the gaps.', mukking: 'Big appetite. Big trouble.', brute: 'Heavy and relentless. Drops supplies.', godu: 'Even bigger. Even hungrier.', johnson: 'Giant black gorilla. Tough body, weak head.', ongmani: 'The bride. Smaller than Johnson, same tough body and weak head.', jjakbural: 'Plain and steady. Nothing special.', sosung: 'Bull body with horns. Charges on four legs.' };
 let villainsOpen = false;
 /* Thumbnails: each zombie is built with the same makeZombie() as in the game, posed, rendered once into a small render target and cached as an image. */
 const thumbCache = {}; let thumbScene = null, thumbCam = null, thumbRT = null;
