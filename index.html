@@ -119,7 +119,30 @@ h1 { margin: 0; font-family: var(--f-display); font-weight: 900; text-transform:
 .stats dt { font-size: 11px; letter-spacing: .24em; color: var(--muted); text-transform: uppercase; }
 .stats dd { margin: 0; font-family: var(--f-mono); font-weight: 600; font-size: 26px; font-variant-numeric: tabular-nums; }
 #err { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 24px; text-align: center; background: var(--bg); line-height: 1.5; }
-@media (max-width: 600px) { .keys { display: none; } #menu { align-items: flex-end; background: linear-gradient(0deg, rgba(5,7,10,.92), rgba(5,7,10,.45) 60%, rgba(5,7,10,0)); } }
+.mhead, .mbody { display: flex; flex-direction: column; gap: 18px; }
+body:has(#menu:not([hidden])) #touch { display: none !important; } /* on-screen game buttons stay hidden behind the menu */
+/* phone, portrait: title + map picker sit at the top (room for more maps), Deploy/Ranking stay at the bottom */
+@media (max-width: 600px) and (orientation: portrait) {
+  .keys { display: none; }
+  #menu { align-items: stretch; background: linear-gradient(180deg, rgba(5,7,10,.9), rgba(5,7,10,.62) 55%, rgba(5,7,10,.92)); }
+  .panel { width: 100%; height: 100%; max-height: 100%; overflow-y: auto; gap: 14px; }
+  .panel > * { flex-shrink: 0; }
+  .mbody { flex: 1 0 auto; gap: 14px; }
+  .mbody .row { margin-top: auto; }
+}
+/* phone, landscape: two columns (title left, maps + buttons right) so nothing is cut off */
+@media (orientation: landscape) and (max-height: 540px) {
+  .keys { display: none; }
+  #menu { align-items: center; background: linear-gradient(90deg, rgba(5,7,10,.9) 0%, rgba(5,7,10,.72) 60%, rgba(5,7,10,.4) 100%); }
+  .panel { width: 100%; max-width: 940px; max-height: 100%; overflow-y: auto; flex-direction: row; align-items: center; gap: 28px; }
+  .mhead { flex: 1 1 0; min-width: 0; gap: 10px; }
+  .mbody { flex: 1.2 1 0; min-width: 0; gap: 10px; }
+  h1 { font-size: clamp(34px, 14vh, 70px); }
+  .lede { font-size: 13px; line-height: 1.45; }
+  #menu .maps { gap: 6px; } #menu #sbOpts { margin-top: 0; }
+  #menu .mapb { padding: 6px 10px; } #menu .mapb b { font-size: 15px; } #menu .mapb small { font-size: 10px; }
+  #menu .btn { font-size: 21px; padding: 9px 26px; } #menu .btn.ghost { font-size: 15px; padding: 8px 18px; }
+}
 .maps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 #sbOpts { margin-top: 8px; }
 .mapb { cursor: pointer; text-align: left; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--ink); padding: 9px 12px; font-family: inherit; display: flex; flex-direction: column; gap: 2px; }
@@ -193,9 +216,12 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 
 <section id="menu" class="screen inset">
   <div class="panel">
+    <div class="mhead">
     <p class="kicker" id="kick">DSR 19th Floor &middot; endless waves</p>
     <h1>Layout<br>Sniper</h1>
     <p class="lede">The gates open every few minutes and the dead walk in. Hold the floor, stay lit, and count your magazines.</p>
+    </div>
+    <div class="mbody">
     <div class="maps" id="maps" role="radiogroup" aria-label="Map"></div>
     <div class="maps" id="sbOpts" role="radiogroup" aria-label="Sandbag layout" style="visibility:hidden;pointer-events:none"></div>
     <div class="row"><button class="btn" id="go">Deploy</button><button class="btn ghost" id="rankBtn">Ranking</button></div>
@@ -209,6 +235,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
       <li><kbd>Space</kbd>Jump</li>
       <li><kbd>F</kbd>Flashlight</li>
     </ul>
+    </div>
   </div>
 </section>
 
@@ -541,14 +568,19 @@ function buildOffice() {
   const sideWall = (t, a, b, mat, cast) => [-1, 1].forEach((s) => { const r = zr(t, a, b); slab(s * CW - 0.1, s * CW + 0.1, r[0], r[1], H, mat, cast); });
   const doorWalls = (t, a, b, mat, cast) => { const c = (a + b) / 2; sideWall(t, a, c - 1.3, mat, cast); sideWall(t, c + 1.3, b, mat, cast); };
   const crossWall = (t, z, mat) => { const r = zr(t, z - 0.1, z + 0.1); slab(-CW, CW, r[0], r[1], H, mat, true); };
+  const doorM = stdMat({ color: 0xa3a9b0, metalness: 0.55, roughness: 0.42, envMapIntensity: 0.8 }), doorSeamM = stdMat({ color: 0x7b8189, metalness: 0.4, roughness: 0.5 });
   [-1, 1].forEach((t) => {
     // elevator bank: 3 doors facing the lobby (6 in total), twice the old spacing
     { const r = zr(t, 8, 11); slab(-CW, CW, r[0], r[1], H, shaftM, true); }
-    [-4.375, 0, 4.375].forEach((x) => {
-      mk(new THREE.BoxGeometry(1.5, 2.5, 0.08), frame, x, 1.25, t * 7.98, 0, false);
-      mk(new THREE.BoxGeometry(0.6, 2.3, 0.06), steel, x - 0.3, 1.15, t * 7.93, 0, false);
-      mk(new THREE.BoxGeometry(0.6, 2.3, 0.06), steel, x + 0.3, 1.15, t * 7.93, 0, false);
-      mk(new THREE.BoxGeometry(0.5, 0.12, 0.05), ind, x, 2.72, t * 7.95, 0, false);
+    [-4.375, 0, 4.375].forEach((x) => { // closed sliding door: two gray leaves that part from the centre seam
+      [-1, 1].forEach((k) => {
+        mk(new THREE.BoxGeometry(0.9, 2.3, 0.06), doorM, x + k * 0.45, 1.15, t * 7.93, 0, false);
+        mk(new THREE.BoxGeometry(0.02, 2.0, 0.065), doorSeamM, x + k * 0.2, 1.15, t * 7.925, 0, false); // faint brushed-metal groove
+      });
+      mk(new THREE.BoxGeometry(0.025, 2.3, 0.07), doorSeamM, x, 1.15, t * 7.92, 0, false); // centre seam
+      mk(new THREE.BoxGeometry(1.8, 0.03, 0.1), doorSeamM, x, 0.02, t * 7.9, 0, false); // threshold
+      mk(new THREE.BoxGeometry(0.12, 0.3, 0.03), doorM, x + 1.15, 1.1, t * 7.95, 0, false); mk(new THREE.BoxGeometry(0.05, 0.05, 0.02), ind, x + 1.15, 1.15, t * 7.93, 0, false); // call button
+      mk(new THREE.BoxGeometry(0.5, 0.12, 0.05), ind, x, 2.72, t * 7.95, 0, false); // floor indicator
     });
     const sg = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.75), new THREE.MeshBasicMaterial({ map: signTex('DSR 19F', 'ELEVATOR LOBBY') }));
     sg.position.set(0, 3.2, t * 7.9); sg.rotation.y = t > 0 ? Math.PI : 0; world.add(sg);
@@ -612,7 +644,7 @@ function buildOffice() {
 /* ---- map: Training Range (one big DSR meeting room; the player cannot move) ---- */
 const TR = { pz: -2.5, slots: [[-2.6, -15.5], [0, -15.5], [2.6, -15.5]], list: [], last: [], t: [0, 0, 0] }, TRAIN_HITS = 5, TRAIN_DIST = 10; // Training Range: player-to-zombie distance in metres
 const isTrain = () => curMap === 'training' || curMap === 'sandbag', trainHits = () => curMap === 'sandbag' ? 8 : TRAIN_HITS;
-const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin'];
+const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani'];
 let sbLayout = 'front'; // Sandbag layout: 'front' = 3 random targets ahead, 'line' = every zombie kneeling in a row along the left wall
 try { const sv = localStorage.getItem('layoutsniper.sbLayout'); if (sv === 'front' || sv === 'line') sbLayout = sv; } catch (e) { /* storage unavailable */ }
 const sbLine = () => curMap === 'sandbag' && sbLayout === 'line';
@@ -907,7 +939,7 @@ function sndGroan(dist, pan, type) {
   else if (type === 'spitter') { tone('sawtooth', 160, 110, 0.7, v * 0.7, pan); noise(1200, 0.4, v * 0.6, 'bandpass'); }
   else if (type === 'bloater') { tone('sine', 70, 40, 1.2, v * 1.2, pan); noise(300, 0.8, v * 0.8); }
   else if (type === 'mukking' || type === 'godu') { tone('sawtooth', 190, 80, 0.55, v * 0.9, pan); noise(700, 0.25, v * 0.5, 'bandpass'); }
-  else if (type === 'brute' || type === 'johnson') tone('sawtooth', 58, 36, 1.1, v, pan);
+  else if (type === 'brute' || type === 'johnson' || type === 'ongmani') tone('sawtooth', 58, 36, 1.1, v, pan);
   else if (type === 'riot' || type === 'dongmin') tone('sawtooth', 75, 50, 0.9, v * 0.8, pan);
   else tone('sawtooth', 95 + rand(-8, 8), 55, 0.8, v, pan);
 }
@@ -1014,7 +1046,10 @@ TYPES.jjiru = Object.assign({}, WALKER_BASE, { speed: 1.5, score: 120, lean: 0.2
 TYPES.huru = Object.assign({}, WALKER_BASE, { whiteHead: true, bald: true, lightning: 0.5 }); // white head; 50% chance to be struck by lightning near the player (or on appearing in practice modes)
 const whiteHeadMat = new THREE.MeshStandardMaterial({ color: 0xf4f4f0, roughness: 0.7 });
 TYPES.huru.headSkin = whiteHeadMat; TYPES.judalgeun = Object.assign({}, WALKER_BASE); TYPES.opl = Object.assign({}, WALKER_BASE); // walker clones: only the names differ
-const MENU_TYPES = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin'];
+TYPES.tongyeongj = Object.assign({}, TYPES.judalgeun); // copy of judalgeun (주딸근): same stats and look, only the name differs
+const dressMat = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.72, emissive: 0x2c2b28, side: THREE.DoubleSide }), veilMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, emissive: 0x333333, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false });
+TYPES.ongmani = Object.assign({}, TYPES.johnson, { scale: 1.45, skin: undefined, cloth: dressMat, dress: true, glove: true }); // johnson's stats but smaller, with normal walker skin (random skin tone), in a white wedding dress
+const MENU_TYPES = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani'];
 const enemies = [], projectiles = [];
 const boomLight = new THREE.PointLight(0x9cff4a, 0, 26, 2); scene.add(boomLight); let boomT = 0;
 const poolGeo = new THREE.CircleGeometry(1, 18).rotateX(-Math.PI / 2), pools = []; let poolI = 0;
@@ -1024,13 +1059,13 @@ function updatePools(dt) { for (const p of pools) { if (!p.m.visible) continue; 
 const acidGeo = new THREE.SphereGeometry(0.13, 10, 8), acidMat = new THREE.MeshBasicMaterial({ color: 0xb6ff3a, fog: false });
 const acidGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x7aff20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
 const seen = {};
-const INTRO = { runner: ['삼드', 'Fast and fragile'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['킥ㄱ우', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['리짜이밍', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥민', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
+const INTRO = { runner: ['삼드', 'Fast and fragile'], tongyeongj: ['통영J', 'Plain and steady'], ongmani: ['옹마니', 'The bride. Huge and slow. Aim for the head'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['킥ㄱ우', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['리짜이밍', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥민', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
 function announce(t) { if (seen[t] || !INTRO[t]) return; seen[t] = 1; toast('New: ' + INTRO[t][0], INTRO[t][1], 2800); }
 function clearFx() { for (const p of projectiles) scene.remove(p.mesh); projectiles.length = 0; for (const p of pools) p.m.visible = false; for (const k in seen) delete seen[k]; }
 
 /* ---- name tags (temporary): edit the names / heights here ---- */
-const ZOMBIE_NAMES = { runner: '삼드', brute: '리짜이밍', crawler: '노시드', spitter: '킥ㄱ우', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: '주딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥민', ybam: 'Y뱀' };
-const TAG_Y = { runner: 2.2, brute: 2.0, crawler: 1.15, spitter: 2.3, bloater: 2.05, riot: 2.25, mukking: 2.4, godu: 2.15, huru: 2.2, judalgeun: 2.2, opl: 2.2, jjiru: 2.1, geobuk: 2.3, johnson: 2.0, dongmin: 2.25, ybam: 2.15 }; // height above the feet (before the zombie's own scale)
+const ZOMBIE_NAMES = { runner: '삼드', ongmani: '옹마니', tongyeongj: '통영J', brute: '리짜이밍', crawler: '노시드', spitter: '킥ㄱ우', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: '주딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥민', ybam: 'Y뱀' };
+const TAG_Y = { runner: 2.2, ongmani: 2.05, tongyeongj: 2.2, brute: 2.0, crawler: 1.15, spitter: 2.3, bloater: 2.05, riot: 2.25, mukking: 2.4, godu: 2.15, huru: 2.2, judalgeun: 2.2, opl: 2.2, jjiru: 2.1, geobuk: 2.3, johnson: 2.0, dongmin: 2.25, ybam: 2.15 }; // height above the feet (before the zombie's own scale)
 const tagMats = {};
 function tagMat(type) {
   if (tagMats[type]) return tagMats[type];
@@ -1092,7 +1127,7 @@ function makeZombie(type, x, z, idle) {
     const sd = mk(G.shoulder, cloth, false); sd.position.set(s * armX, 1.43 + sh, 0); upper.add(sd);
     if (sh) { const tr = mk(G.shoulder, cloth, true); tr.position.set(s * armX * 0.55, 1.5 + sh * 0.45, -0.01); tr.scale.set(2.4, 1.2 + sh * 6, 1.9); upper.add(tr); }
     const up = grp(upper, s * armX, 1.42 + sh, 0); up.add(mk(G.upperArm, cloth, true));
-    const fo = grp(up, 0, -0.3, 0); fo.add(mk(G.foreArm, skin, true));
+    const fo = grp(up, 0, -0.3, 0); fo.add(mk(G.foreArm, cfg.glove ? cloth : skin, true));
     const hd = grp(fo, 0, -0.3, 0); hd.add(mk(G.hand, skin, false)); arms.push({ up: up, fo: fo });
   }
   let sac = null;
@@ -1106,6 +1141,13 @@ function makeZombie(type, x, z, idle) {
     torso.scale.set(1.55 * fm, 1, 1.5 * fm); pelvis.scale.set(2.1 * fm, 1, 1.9 * fm);
     const sk = mk(G.skirt, cloth, true); sk.position.set(0, 0.68, 0); sk.scale.set(fm, 1, fm); body.add(sk);
     const bl = mk(G.belly, cloth, true); bl.position.set(0, 1.0, 0.1 * fm); bl.scale.set(0.78 * fm, 0.82 * fm, 0.78 * fm); upper.add(bl);
+  }
+  if (cfg.dress) { // wedding gown: tiered flared skirt over the legs, waist sash, and a veil behind the head
+    [[0.21, 0.52, 0.98, 0.52], [0.46, 0.7, 0.62, 0.1]].forEach((t) => { const sk = mk(new THREE.CylinderGeometry(t[0], t[1], t[2] - t[3], 24, 1, true), dressMat, true); sk.position.y = (t[2] + t[3]) / 2; body.add(sk); });
+    const ring = mk(new THREE.TorusGeometry(0.69, 0.025, 6, 28), dressMat, false); ring.rotation.x = Math.PI / 2; ring.position.y = 0.12; body.add(ring); // hem trim
+    const sash = mk(new THREE.CylinderGeometry(0.2, 0.2, 0.08, 16, 1, true), dressMat, false); sash.position.y = 0.98; body.add(sash);
+    const vl = mk(new THREE.BoxGeometry(0.4, 0.75, 0.02), veilMat, false); vl.position.set(0, -0.14, -0.17); vl.rotation.x = 0.12; head.add(vl);
+    const tiara = mk(new THREE.TorusGeometry(0.135, 0.012, 6, 20, Math.PI), dressMat, false); tiara.position.set(0, 0.07, 0.01); tiara.rotation.set(0.1, 0, 0); head.add(tiara);
   }
   if (cfg.sac) { sac = mk(G.sac, sacMat, false); sac.position.set(0, 1.5, 0.07); upper.add(sac); }
   if (cfg.armor) { upper.add(mk(G.plate, metalMat, true)); for (const s of [-1, 1]) { const pd = mk(G.pauldron, metalMat, true); pd.position.set(s * 0.3, 1.48, 0); upper.add(pd); } }
@@ -1311,24 +1353,14 @@ function updatePickups(dt) {
 /* ---------------- waves ---------------- */
 function aliveCount() { let n = 0; for (const e of enemies) if (!e.dead && !e.idle) n++; return n; }
 function startWave(n) {
-  W.n = n; W.toSpawn = 5 + n * 4; W.spawnT = 2.2; W.state = 'active';
+  W.n = n; W.toSpawn = WAVE_TYPES.length - 4 + n * 4; W.queue = waveQueue(); W.spawnT = 2.2; W.state = 'active'; // wave 1 = one of every type (17), +4 more each wave
   toast('Wave ' + n, n === 1 ? 'Hold the floor' : 'They are coming faster', 2000);
 }
+const WAVE_TYPES = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'mukking', 'godu', 'brute', 'spitter', 'bloater', 'johnson', 'dongmin', 'riot', 'tongyeongj', 'ongmani']; // every zombie type is in play from wave 1
+function waveQueue() { const q = WAVE_TYPES.slice(); for (let i = q.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [q[i], q[j]] = [q[j], q[i]]; } return q; } // shuffled: each type shows up at least once per wave
 function pickType() {
-  const n = W.n, t = [['huru', 1], ['judalgeun', 1], ['opl', 1]];
-  if (n >= 2) t.push(['jjiru', 1], ['geobuk', 1], ['ybam', 1]);
-  if (n >= 2) t.push(['runner', Math.min(2.2, (n - 1) * 0.6)]);
-  if (n >= 3) t.push(['crawler', Math.min(1.8, (n - 2) * 0.6)]);
-  if (n >= 3) t.push(['mukking', Math.min(1.2, (n - 2) * 0.35)]);
-  if (n >= 5) t.push(['godu', Math.min(1, (n - 4) * 0.3)]);
-  if (n >= 4) { t.push(['brute', Math.min(1, (n - 3) * 0.3)]); t.push(['spitter', Math.min(1.6, (n - 3) * 0.5)]); }
-  if (n >= 5) t.push(['bloater', Math.min(1.4, (n - 4) * 0.5)]);
-  if (n >= 6) t.push(['johnson', Math.min(0.8, (n - 5) * 0.3)]);
-  if (n >= 6) t.push(['dongmin', Math.min(1.5, (n - 5) * 0.5)]);
-  if (n >= 6) t.push(['riot', Math.min(1.5, (n - 5) * 0.5)]);
-  let sum = 0; t.forEach((x) => { sum += x[1]; }); let r = Math.random() * sum;
-  for (const x of t) { r -= x[1]; if (r <= 0) return x[0]; }
-  return 'huru';
+  if (W.queue && W.queue.length) return W.queue.pop();
+  return WAVE_TYPES[(Math.random() * WAVE_TYPES.length) | 0];
 }
 function spawnOne() {
   let best = null, bd = -1; const opts = [];
@@ -1674,8 +1706,8 @@ $('rankBtn').addEventListener('click', openRank); $('rankBtn2').addEventListener
 $('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('layoutsniper.best'); } catch (e) { /* ignore */ } renderRank(); } });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && rankOpen) closeRank(); });
 /* ---- Villain List: a menu tile (next to the maps) that shows every zombie type ---- */
-const VILLAIN_ORDER = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'spitter', 'bloater', 'riot', 'dongmin', 'mukking', 'brute', 'godu', 'johnson'];
-const VILLAIN_NOTES = { huru: 'Plain and steady. Nothing special.', judalgeun: 'Plain and steady. Nothing special.', opl: 'Plain and steady. Nothing special.', jjiru: 'Bow-legged waddle. Slow and in pain.', geobuk: 'Taller, neck pushed forward. Head leads the way.', ybam: 'Shoulders hiked up to the ears.', runner: 'Fast and fragile.', crawler: 'Low profile. Aim low.', spitter: 'Acid from a distance.', bloater: 'Explodes when popped. Shoot from afar.', riot: 'Armored. Aim for the gaps.', dongmin: 'Armored. Aim for the gaps.', mukking: 'Big appetite. Big trouble.', brute: 'Heavy and relentless. Drops supplies.', godu: 'Even bigger. Even hungrier.', johnson: 'Giant. Tough body, weak head.' };
+const VILLAIN_ORDER = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'spitter', 'bloater', 'riot', 'dongmin', 'mukking', 'brute', 'godu', 'johnson', 'tongyeongj', 'ongmani'];
+const VILLAIN_NOTES = { huru: 'Plain and steady. Nothing special.', judalgeun: 'Plain and steady. Nothing special.', opl: 'Plain and steady. Nothing special.', jjiru: 'Bow-legged waddle. Slow and in pain.', geobuk: 'Taller, neck pushed forward. Head leads the way.', ybam: 'Shoulders hiked up to the ears.', runner: 'Fast and fragile.', tongyeongj: 'Plain and steady. Nothing special.', crawler: 'Low profile. Aim low.', spitter: 'Acid from a distance.', bloater: 'Explodes when popped. Shoot from afar.', riot: 'Armored. Aim for the gaps.', dongmin: 'Armored. Aim for the gaps.', mukking: 'Big appetite. Big trouble.', brute: 'Heavy and relentless. Drops supplies.', godu: 'Even bigger. Even hungrier.', johnson: 'Giant. Tough body, weak head.', ongmani: 'The bride. Smaller than Johnson, same tough body and weak head.' };
 let villainsOpen = false;
 /* Thumbnails: each zombie is built with the same makeZombie() as in the game, posed, rendered once into a small render target and cached as an image. */
 const thumbCache = {}; let thumbScene = null, thumbCam = null, thumbRT = null;
