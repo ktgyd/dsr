@@ -294,7 +294,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
       <div><dt>Best score</dt><dd id="oBest">0</dd></div>
     </dl>
     <p id="oMsg" class="lede">Saved on this device only.</p>
-    <div class="row"><button class="btn" id="again">Deploy again</button><button class="btn ghost" id="toMenu">Menu</button><button class="btn ghost" id="rankBtn2">Ranking</button></div>
+    <div class="row"><button class="btn" id="again">Deploy again</button><button class="btn ghost" id="oLoad" hidden>Load</button><button class="btn ghost" id="oLoad2" hidden>Previous</button><button class="btn ghost" id="toMenu">Menu</button><button class="btn ghost" id="rankBtn2">Ranking</button></div>
   </div>
 </section>
 
@@ -1994,7 +1994,7 @@ function readSave(slot) { try { const j = JSON.parse(localStorage.getItem(slot =
 function refreshLoadBtn() {
   const set = (id, d, label) => { const b = $(id); b.hidden = !d; if (d) { b.textContent = label + ' \u00b7 Wave ' + d.W.n; try { b.title = new Date(d.t).toLocaleString(); } catch (err) { /* ignore */ } } };
   const d1 = readSave(1), d2 = readSave(2);
-  set('loadBtn', d1, 'Load'); set('loadBtn2', d2, 'Previous'); set('pLoad', d1, 'Load'); set('pLoad2', d2, 'Previous');
+  set('loadBtn', d1, 'Load'); set('loadBtn2', d2, 'Previous'); set('pLoad', d1, 'Load'); set('pLoad2', d2, 'Previous'); set('oLoad', d1, 'Load'); set('oLoad2', d2, 'Previous');
   $('pSave').hidden = curMap !== 'office';
 }
 function saveGame() {
@@ -2041,6 +2041,8 @@ $('vbtn').addEventListener('click', (e) => { e.preventDefault(); saveGame(); $('
 $('pSave').addEventListener('click', (e) => { e.preventDefault(); saveGame(); });
 $('pLoad').addEventListener('click', (e) => { e.preventDefault(); loadGame(1); });
 $('pLoad2').addEventListener('click', (e) => { e.preventDefault(); loadGame(2); });
+$('oLoad').addEventListener('click', (e) => { e.preventDefault(); loadGame(1); });
+$('oLoad2').addEventListener('click', (e) => { e.preventDefault(); loadGame(2); });
 $('loadBtn').addEventListener('click', (e) => { e.preventDefault(); loadGame(1); });
 $('loadBtn2').addEventListener('click', (e) => { e.preventDefault(); loadGame(2); });
 refreshLoadBtn();
