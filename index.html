@@ -94,6 +94,11 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 #bSwap { right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(206px + env(safe-area-inset-bottom, 0px)); }
 .touchmode #touch { display: block; }
 .touchmode #hud .ammo { bottom: auto; top: 96px; }
+/* touch: weapon slots go to the bottom-right corner in two rows (out of the way of the view); in landscape the ammo count moves up beside the score, clear of the buttons */
+.touchmode #hud .ammo .slots { position: fixed; right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px)); display: grid; grid-template-columns: repeat(3, auto); gap: 4px; margin: 0; font-size: 11px; letter-spacing: .06em; justify-content: end; }
+.touchmode #hud .ammo .slots span { padding: 2px 6px; background: rgba(0,0,0,.35); text-align: center; white-space: nowrap; }
+.touchmode #hud .ammo .slots span.on { background: var(--amber); }
+@media (orientation: landscape) { .touchmode #hud .ammo { top: max(12px, env(safe-area-inset-top, 0px)); right: calc(max(18px, env(safe-area-inset-right, 0px)) + 104px); padding: 0; } .touchmode #hud .ammo b { font-size: 38px; } .touchmode #hud .ammo em { font-size: 16px; } .touchmode #wname { font-size: 14px; } }
 .touchmode #hud .hp { bottom: auto; top: 0; width: 180px; }
 #mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px); width: 112px; height: auto; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.35); display: none; pointer-events: none; }
 #mm.on { display: block; }
