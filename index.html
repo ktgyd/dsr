@@ -758,6 +758,147 @@ function buildOffice() {
   [[0, 0], [0, -17], [0, 17], [0, -33], [0, 33], [-23, 0], [23, 0]].forEach((p) => { const l = new THREE.PointLight(0xfff0dd, 1.1, 34, 2); l.position.set(p[0], 3.1, p[1]); world.add(l); });
 }
 
+/* ---- map: NOVA Tower 7th Floor (second office map). Researched layout: reception + lift lobby at the entrance, boardroom and pantry/cafe beside it, a big open-plan bench area in the middle flanked by glass offices and meeting rooms, and restrooms / storage / town-hall room / copy room / server room along the far wall ---- */
+function buildOffice2() {
+  const H = 3.6, S = HALF, XS = 30; // building is 60 (x) by 72 (z)
+  const wm = stdMat({ map: officeWallTex, emissiveMap: officeWallTex, emissive: 0xffffff, emissiveIntensity: 0.4, envMapIntensity: 0.2 });
+  [[0, -S - 1, XS * 2 + 4, 2], [0, S + 1, XS * 2 + 4, 2], [-XS - 1, 0, 2, S * 2 + 4], [XS + 1, 0, 2, S * 2 + 4]].forEach((w) => { mk(new THREE.BoxGeometry(w[2], H, w[3]), wm, w[0], H / 2, w[1]); addCol(w[0], w[1], w[2], w[3], H); });
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(XS * 2, S * 2), stdMat({ color: 0xd8d3c7, roughness: 1, envMapIntensity: 0.1 }));
+  ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil);
+  const tile = new THREE.Mesh(new THREE.PlaneGeometry(24, 16), stdMat({ map: hallTex, roughness: 0.38, metalness: 0.1, envMapIntensity: 0.5 }));
+  tile.rotation.x = -Math.PI / 2; tile.position.set(0, 0.02, 28); tile.receiveShadow = true; world.add(tile); // polished reception floor
+  // gates = stairwell doors (8), all in the open corridors
+  GATES.length = 0;
+  [[-9, -24], [9, -24], [-27, -24], [27, -24], [-20.5, -8], [20.5, -8], [-20.5, 12], [20.5, 12]].forEach((g) => GATES.push(g));
+  const gm = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a1a, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  GATES.forEach((g) => { const s = new THREE.Sprite(gm); s.scale.set(4, 4, 1); s.position.set(g[0] * 1.02, 2.6, g[1] * 1.02); world.add(s); });
+  const shaftM = stdMat({ color: 0xe9e2d2, roughness: 0.7 }), frame = stdMat({ color: 0x2a2e34, roughness: 0.6 }), ind = new THREE.MeshBasicMaterial({ color: 0x3dff7a });
+  const pm = stdMat({ color: 0xf0e9d9, roughness: 0.85, envMapIntensity: 0.2 });
+  const glass = stdMat({ color: 0x9ecbe0, transparent: true, opacity: 0.3, roughness: 0.1, metalness: 0.3, envMapIntensity: 1, depthWrite: false });
+  const wood = stdMat({ color: 0x7a5636, roughness: 0.55 }), dark = stdMat({ color: 0x20232a, roughness: 0.7 }), white = stdMat({ color: 0xf2f4f6, roughness: 0.5 });
+  const fridgeM = stdMat({ color: 0xe9ecef, metalness: 0.3, roughness: 0.35, envMapIntensity: 0.6 });
+  const doorM = stdMat({ color: 0xa3a9b0, metalness: 0.55, roughness: 0.42, envMapIntensity: 0.8 }), doorSeamM = stdMat({ color: 0x7b8189, metalness: 0.4, roughness: 0.5 });
+  const B = new Batch(), SC = new Batch(), LT = new Batch();
+  const screens = [0x2f5f8f, 0x1a3550, 0x101820, 0x35506b, 0x2b6f6a];
+  // wall helpers: wx = wall along z at a fixed x, wz = wall along x at a fixed z; the *d versions leave a doorway (gap centre gc, half width gw) under a solid header, glass versions keep the room see-through
+  const wx = (x, z0, z1, mat, cast) => slab(x - 0.1, x + 0.1, z0, z1, H, mat, cast !== undefined ? cast : true);
+  const wz = (z, x0, x1, mat, cast) => slab(x0, x1, z - 0.1, z + 0.1, H, mat, cast !== undefined ? cast : true);
+  const wzd = (z, x0, x1, gc, gw, mat, cast) => { wz(z, x0, gc - gw, mat, cast); wz(z, gc + gw, x1, mat, cast); mk(new THREE.BoxGeometry(gw * 2, H - 2.3, 0.2), pm, gc, 2.3 + (H - 2.3) / 2, z, 0, true); mk(new THREE.BoxGeometry(0.1, 2.3, 0.14), frame, gc - gw, 1.15, z, 0, false); mk(new THREE.BoxGeometry(0.1, 2.3, 0.14), frame, gc + gw, 1.15, z, 0, false); };
+  const wxd = (x, z0, z1, gc, gw, mat, cast) => { wx(x, z0, gc - gw, mat, cast); wx(x, gc + gw, z1, mat, cast); mk(new THREE.BoxGeometry(0.2, H - 2.3, gw * 2), pm, x, 2.3 + (H - 2.3) / 2, gc, 0, true); mk(new THREE.BoxGeometry(0.14, 2.3, 0.1), frame, x, 1.15, gc - gw, 0, false); mk(new THREE.BoxGeometry(0.14, 2.3, 0.1), frame, x, 1.15, gc + gw, 0, false); };
+  const chair = (x, z, face) => { B.add(x, 0.48, z, 0.5, 0.07, 0.5, 0x262a31); B.add(x + (face === 'x+' ? -0.22 : face === 'x-' ? 0.22 : 0), 0.8, z + (face === 'z+' ? -0.22 : face === 'z-' ? 0.22 : 0), face[0] === 'x' ? 0.07 : 0.48, 0.55, face[0] === 'x' ? 0.48 : 0.07, 0x262a31); B.add(x, 0.24, z, 0.07, 0.45, 0.07, 0x15171b); }; // face = the direction the sitter looks
+  const plant = (x, z, big) => { const r = big ? 0.3 : 0.18; B.add(x, 0.25 * (big ? 2 : 1), z, r * 2, 0.5 * (big ? 2 : 1), r * 2, 0xb5654a); B.add(x, (big ? 1.2 : 0.65), z, r * 2.6, big ? 1.1 : 0.5, r * 2.6, 0x3f7a4a); B.add(x, (big ? 1.85 : 0.95), z, r * 1.6, big ? 0.6 : 0.3, r * 1.6, 0x58a064); if (big) addCol(x, z, 0.7, 0.7, 1.8); };
+  // ===== NORTH BAND (z -36..-26): restrooms | storage | town hall | copy room | server room =====
+  wzd(-26, -30, -24, -27, 1.0, pm); wzd(-26, -24, -18, -21, 1.0, pm); wx(-24, -36, -26, pm); wx(-18, -36, -26, pm);
+  [[-30, -27, 'MEN', '\uB0A8\uC790\uD654\uC7A5\uC2E4', 1], [-24, -21, 'WOMEN', '\uC5EC\uC790\uD654\uC7A5\uC2E4', -1]].forEach((r) => {
+    const x0 = r[0], cx = r[1], sg = r[4]; // sg = which side wall holds the sinks
+    const rs = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), new THREE.MeshBasicMaterial({ map: signTex(r[2], r[3]) })); rs.position.set(cx, 2.55, -25.86); world.add(rs);
+    for (let i = 0; i < 3; i++) { B.add(x0 + 0.85 + i * 1.7, 0.25, -35.4, 0.45, 0.5, 0.6, 0xf2f4f6); B.add(x0 + 1.7 * (i + 1), 1.0, -34.6, 0.05, 2.0, 2.8, 0xcfd6dc); }
+    addCol(x0 + 3, -34.6, 5.4, 2.8, 2);
+    const wxs = sg > 0 ? x0 + 0.3 : x0 + 5.7; B.add(wxs, 0.85, -29.5, 0.5, 0.12, 2.6, 0xf2f4f6); B.add(sg > 0 ? x0 + 0.06 : x0 + 5.94, 1.5, -29.5, 0.04, 0.9, 2.2, 0xbfd4e2); addCol(wxs, -29.5, 0.6, 2.7, 1.0);
+  });
+  wzd(-26, -18, -14, -16, 0.9, pm); wx(-14, -36, -26, pm); // storage closet
+  B.add(-17.6, 1.0, -31, 0.5, 2.0, 7, 0x7b7f86); [-34, -32, -30, -28].forEach((z, i) => B.add(-17.3, 0.35 + (i % 2) * 0.8, z, 0.3, 0.3, 1.2, 0xb48a5c)); addCol(-17.6, -31, 0.6, 7, 2);
+  // town hall: glass front with a wide double doorway, screen on the north wall, rows of chairs
+  wx(14, -36, -26, pm);
+  slab(-14, -2.2, -26.1, -25.9, H, glass, false); slab(2.2, 14, -26.1, -25.9, H, glass, false); mk(new THREE.BoxGeometry(4.4, H - 2.3, 0.2), pm, 0, 2.3 + (H - 2.3) / 2, -26, 0, true);
+  [-2.2, 2.2].forEach((x) => mk(new THREE.BoxGeometry(0.12, 2.3, 0.16), frame, x, 1.15, -26, 0, false));
+  const th = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.6), new THREE.MeshBasicMaterial({ map: signTex('TOWN HALL', '\uD0C0\uC6B4\uD640') })); th.position.set(0, 3.0, -25.86); world.add(th);
+  B.add(0, 2.1, -35.85, 8.0, 2.8, 0.06, 0xeef1f4); B.add(0, 2.1, -35.8, 7.6, 2.4, 0.03, 0x2f5f8f); B.add(0, 0.55, -34.2, 0.9, 1.1, 0.6, 0x7a5636); addCol(0, -34.2, 0.9, 0.6, 1.1);
+  [-31.8, -30.2, -28.6, -27.0].forEach((z) => { for (let i = 0; i < 6; i++) { [-1, 1].forEach((k) => { const x = k * (2.8 + i * 1.4); B.add(x, 0.48, z, 0.5, 0.07, 0.5, 0x34495e); B.add(x, 0.8, z + 0.22, 0.48, 0.55, 0.07, 0x34495e); }); } });
+  plant(-13, -35, true); plant(13, -35, true);
+  // copy / print room
+  wzd(-26, 14, 18, 16, 0.9, pm); wx(18, -36, -26, pm);
+  B.add(16, 0.55, -34.8, 1.6, 1.1, 0.8, 0xdfe3e8); B.add(16, 1.15, -34.8, 1.6, 0.1, 0.8, 0x3b3f46); B.add(16, 0.7, -32.2, 0.7, 1.4, 0.5, 0xa9afb7); addCol(16, -34.8, 1.7, 0.9, 1.2); addCol(16, -32.2, 0.8, 0.6, 1.4);
+  // server room: two rows of racks with blinking-looking LEDs
+  wzd(-26, 18, 30, 22, 0.9, pm);
+  [-34.2, -30.6].forEach((z, rr) => { for (let i = 0; i < 5; i++) { const x = 20.8 + i * 1.5; B.add(x, 1.05, z, 0.8, 2.1, 1.0, 0x15171b); for (let k = 0; k < 5; k++) SC.add(x - 0.2 + (k % 2) * 0.3, 0.5 + k * 0.32, z + (rr ? -0.52 : 0.52), 0.12, 0.05, 0.02, [0x3dff7a, 0x3a9bff, 0xffb02e][(i + k) % 3]); addCol(x, z, 0.9, 1.1, 2.1); } });
+  B.add(29.3, 1.0, -31, 0.6, 2.0, 2.4, 0xcfd6dc); addCol(29.3, -31, 0.7, 2.5, 2.0);
+  // ===== MIDDLE BAND (z -22..18): west private offices | corridor | open plan benches | corridor | east meeting rooms =====
+  const rz = [[-22, -14], [-14, -6], [-6, 2], [2, 10], [10, 18]];
+  [-22, -14, -6, 2, 10, 18].forEach((z) => { wz(z, -30, -22, pm); wz(z, 22, 30, pm); }); // dividing walls (west offices, east rooms)
+  rz.forEach((r, i) => {
+    const cz = (r[0] + r[1]) / 2;
+    // west: glass-fronted private offices
+    slab(-22.1, -21.9, r[0], cz - 0.85, H, glass, false); slab(-22.1, -21.9, cz + 0.85, r[1], H, glass, false); mk(new THREE.BoxGeometry(0.2, H - 2.3, 1.7), pm, -22, 2.3 + (H - 2.3) / 2, cz, 0, true);
+    mk(new THREE.BoxGeometry(1.0, 0.08, 2.4), wood, -27.4, 0.75, cz); mk(new THREE.BoxGeometry(0.8, 0.7, 2.0), dark, -27.4, 0.36, cz); addCol(-27.4, cz, 1.0, 2.4, 0.8);
+    B.add(-27.5, 1.0, cz, 0.06, 0.34, 0.55, 0x141518); chair(-28.6, cz, 'x+'); chair(-25.2, cz - 0.9, 'x-'); chair(-25.2, cz + 0.9, 'x-');
+    B.add(-26, 1.0, r[0] + 0.35, 3.0, 2.0, 0.4, 0x6b4e32); [0, 1, 2, 3, 4].forEach((k) => B.add(-27 + k * 0.5, 1.2 + (k % 2) * 0.5, r[0] + 0.58, 0.3, 0.25, 0.04, [0x8c3f4a, 0x3f6e8c, 0xd9a441, 0x4a7a5a, 0x9aa0a8][k])); addCol(-26, r[0] + 0.35, 3.0, 0.4, 2.0);
+    plant(-23.2, r[1] - 0.8, false);
+    // east: glass meeting rooms (three), wellness room, storage
+    if (i < 3) {
+      slab(21.9, 22.1, r[0], cz - 0.85, H, glass, false); slab(21.9, 22.1, cz + 0.85, r[1], H, glass, false); mk(new THREE.BoxGeometry(0.2, H - 2.3, 1.7), pm, 22, 2.3 + (H - 2.3) / 2, cz, 0, true);
+      mk(new THREE.BoxGeometry(1.2, 0.08, 4.6), wood, 26, 0.75, cz); mk(new THREE.BoxGeometry(0.7, 0.7, 4.0), dark, 26, 0.36, cz); addCol(26, cz, 1.2, 4.6, 0.8);
+      for (let k = 0; k < 3; k++) { chair(24.6, cz - 1.5 + k * 1.5, 'x+'); chair(27.4, cz - 1.5 + k * 1.5, 'x-'); }
+      mk(new THREE.BoxGeometry(0.05, 1.0, 2.6), white, 29.85, 1.7, cz, 0, false);
+    } else {
+      wxd(22, r[0], r[1], cz, 0.85, pm); // solid doored rooms
+    }
+  });
+  // wellness room (z 2..10): sofa, daybed, plant. storage (z 10..18): shelving
+  B.add(28.5, 0.3, 6, 1.1, 0.45, 3.2, 0x6f8f7a); B.add(29.2, 0.7, 6, 0.3, 0.6, 3.2, 0x5f7f6a); B.add(25, 0.28, 8.7, 1.0, 0.4, 2.0, 0xd9d2c0); addCol(28.6, 6, 1.4, 3.3, 0.9); addCol(25, 8.7, 1.1, 2.1, 0.5); plant(23.3, 3.2, true);
+  [12, 14.5, 17].forEach((z) => { B.add(29.4, 1.0, z, 0.5, 2.0, 1.6, 0x7b7f86); [0.4, 1.0, 1.6].forEach((y, k) => B.add(29.1, y, z, 0.3, 0.35, 1.2, [0xb48a5c, 0x9aa0a8, 0xb48a5c][k])); addCol(29.4, z, 0.6, 1.7, 2.0); });
+  B.add(24, 1.0, 11, 0.5, 2.0, 1.2, 0x7b7f86); addCol(24, 11, 0.6, 1.3, 2.0);
+  // open-plan bench pods (15): back-to-back rows of 4 desks
+  const pod = (px, pz) => {
+    B.add(px, 0.75, pz, 8.4, 1.5, 0.08, 0xc9a46c); B.add(px, 1.52, pz, 8.4, 0.06, 0.12, 0x8396ab);
+    B.add(px - 4.3, 0.75, pz, 0.12, 1.5, 3.6, 0x8396ab); B.add(px + 4.3, 0.75, pz, 0.12, 1.5, 3.6, 0x8396ab);
+    [-1, 1].forEach((j) => {
+      for (let b = 1; b < 4; b++) { const xb = px + (b - 2) * 2.1; B.add(xb, 0.75, pz + j * 0.9, 0.05, 1.5, 1.6, 0xcdb083); B.add(xb, 1.52, pz + j * 0.9, 0.07, 0.05, 1.6, 0x8fa0b2); }
+      for (let k = 0; k < 4; k++) {
+        const xc = px + (k - 1.5) * 2.1;
+        B.add(xc, 0.74, pz + j * 0.9, 1.9, 0.05, 1.6, 0xd7b17a); B.add(xc, 0.4, pz + j * 1.65, 1.8, 0.7, 0.04, 0xbf9a62);
+        B.add(xc, 0.98, pz + j * 0.55, 0.55, 0.34, 0.06, 0x141518); SC.add(xc, 0.98, pz + j * 0.59, 0.5, 0.3, 0.02, screens[(Math.random() * screens.length) | 0]);
+        const cx = xc + rand(-0.15, 0.15);
+        B.add(cx, 0.48, pz + j * 1.95, 0.5, 0.07, 0.5, 0x262a31); B.add(cx, 0.82, pz + j * 2.18, 0.48, 0.55, 0.07, 0x262a31); B.add(cx, 0.24, pz + j * 1.95, 0.07, 0.45, 0.07, 0x15171b);
+      }
+    });
+    addCol(px, pz, 8.6, 3.6, 1.5);
+  };
+  [-13, 0, 13].forEach((px) => [-19, -10.5, -2, 6.5, 15].forEach((pz) => pod(px, pz)));
+  [[-18.6, -22.5], [18.6, -22.5], [-18.6, 18.5], [18.6, 18.5]].forEach((p) => plant(p[0], p[1], true)); // planters at the corridor corners
+  // ===== SOUTH BAND (z 20..36): boardroom | reception + lift lobby | pantry =====
+  // boardroom (glass): door in the north wall and in the east wall
+  slab(-30, -15, 19.9, 20.1, H, glass, false); slab(-13, -12, 19.9, 20.1, H, glass, false); mk(new THREE.BoxGeometry(2, H - 2.3, 0.2), pm, -14, 2.3 + (H - 2.3) / 2, 20, 0, true);
+  slab(-12.1, -11.9, 20, 27, H, glass, false); slab(-12.1, -11.9, 29, 36, H, glass, false); mk(new THREE.BoxGeometry(0.2, H - 2.3, 2), pm, -12, 2.3 + (H - 2.3) / 2, 28, 0, true);
+  mk(new THREE.BoxGeometry(10, 0.08, 2.4), wood, -21, 0.75, 28); mk(new THREE.BoxGeometry(9, 0.7, 1.6), dark, -21, 0.36, 28); addCol(-21, 28, 10, 2.4, 0.8);
+  for (let i = 0; i < 6; i++) { chair(-25.5 + i * 1.7, 26.4, 'z+'); chair(-25.5 + i * 1.7, 29.6, 'z-'); } chair(-27.1, 28, 'x+'); chair(-14.9, 28, 'x-');
+  B.add(-29.85, 1.9, 28, 0.08, 1.4, 3.0, 0x1a3550); B.add(-29.8, 1.9, 28, 0.04, 1.2, 2.8, 0x2f5f8f); B.add(-21, 0.4, 35.5, 8, 0.8, 0.5, 0x7a5636); addCol(-21, 35.5, 8, 0.5, 0.8); plant(-28.8, 22, true); plant(-28.8, 34.5, true);
+  const bs = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6), new THREE.MeshBasicMaterial({ map: signTex('BOARDROOM', '\uC774\uC0AC\uD68C\uC2E4') })); bs.position.set(-14, 3.0, 20.14); bs.rotation.y = Math.PI; world.add(bs);
+  // lift lobby: 3 elevators in the south wall + reception desk, sofas and planters
+  slab(-9, 9, 34.4, 36, H, shaftM, true);
+  [-6, 0, 6].forEach((x) => {
+    [-1, 1].forEach((k) => { mk(new THREE.BoxGeometry(0.9, 2.3, 0.06), doorM, x + k * 0.45, 1.15, 34.33, 0, false); mk(new THREE.BoxGeometry(0.02, 2.0, 0.065), doorSeamM, x + k * 0.2, 1.15, 34.335, 0, false); });
+    mk(new THREE.BoxGeometry(0.025, 2.3, 0.07), doorSeamM, x, 1.15, 34.34, 0, false); mk(new THREE.BoxGeometry(1.8, 0.03, 0.1), doorSeamM, x, 0.02, 34.3, 0, false);
+    mk(new THREE.BoxGeometry(0.12, 0.3, 0.03), doorM, x + 1.15, 1.1, 34.3, 0, false); mk(new THREE.BoxGeometry(0.05, 0.05, 0.02), ind, x + 1.15, 1.15, 34.28, 0, false); mk(new THREE.BoxGeometry(0.5, 0.12, 0.05), ind, x, 2.72, 34.3, 0, false);
+  });
+  const es = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 0.8), new THREE.MeshBasicMaterial({ map: signTex('NOVA TOWER', '7F \u00B7 ELEVATORS') })); es.position.set(0, 3.1, 34.28); es.rotation.y = Math.PI; world.add(es);
+  mk(new THREE.BoxGeometry(6.6, 0.06, 1.1), wood, 0, 1.1, 29.5); B.add(0, 0.55, 29.5, 6.4, 1.1, 0.9, 0xf2f4f6); B.add(0, 0.55, 29.05, 6.4, 1.1, 0.04, 0xd9a441); addCol(0, 29.5, 6.6, 1.1, 1.1);
+  B.add(-1.6, 1.3, 29.7, 0.6, 0.34, 0.06, 0x141518); SC.add(-1.6, 1.3, 29.66, 0.5, 0.3, 0.02, 0x2f5f8f); B.add(1.6, 1.3, 29.7, 0.6, 0.34, 0.06, 0x141518); SC.add(1.6, 1.3, 29.66, 0.5, 0.3, 0.02, 0x2b6f6a); chair(0, 30.8, 'z-');
+  const rl = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.55), new THREE.MeshBasicMaterial({ map: signTex('NOVA', 'RECEPTION') })); rl.position.set(0, 0.7, 29.02); rl.rotation.y = Math.PI; world.add(rl);
+  [-1, 1].forEach((k) => { B.add(k * 9.4, 0.28, 24.5, 1.0, 0.42, 3.0, 0x4c6a8a); B.add(k * 9.9, 0.62, 24.5, 0.28, 0.5, 3.0, 0x425d7a); B.add(k * 7.6, 0.2, 24.5, 0.9, 0.4, 1.4, 0x7a5636); addCol(k * 9.5, 24.5, 1.4, 3.1, 0.8); plant(k * 11.2, 21.4, true); plant(k * 11.2, 33.4, true); });
+  // pantry / cafe: glass front (doorways in the west and north walls), kitchen counter, island with stools, high tables, vending
+  slab(11.9, 12.1, 20, 26.5, H, glass, false); slab(11.9, 12.1, 29.5, 36, H, glass, false); mk(new THREE.BoxGeometry(0.2, H - 2.3, 3), pm, 12, 2.3 + (H - 2.3) / 2, 28, 0, true);
+  slab(12, 14, 19.9, 20.1, H, glass, false); slab(18, 30, 19.9, 20.1, H, glass, false); mk(new THREE.BoxGeometry(4, H - 2.3, 0.2), pm, 16, 2.3 + (H - 2.3) / 2, 20, 0, true);
+  const ps = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 0.55), new THREE.MeshBasicMaterial({ map: signTex('CAFE', '\uD30C\uD2B8\uB9AC')})); ps.position.set(16, 3.0, 20.14); ps.rotation.y = Math.PI; world.add(ps);
+  B.add(21, 0.012, 28, 18, 0.024, 16, 0xa4825c);
+  mk(new THREE.BoxGeometry(0.8, 0.06, 12), wood, 29.45, 0.93, 28); B.add(29.45, 0.45, 28, 0.7, 0.9, 11.8, 0x2a2d33); addCol(29.45, 28, 0.8, 12, 0.95); B.add(29.7, 2.1, 28, 0.35, 0.7, 11.6, 0xe9e2d2);
+  [22.4, 23.7].forEach((z) => mk(new THREE.BoxGeometry(0.9, 1.9, 1.0), fridgeM, 29.4, 0.95, z)); addCol(29.4, 23.05, 1.0, 2.4, 1.9);
+  B.add(29.4, 1.05, 27.2, 0.4, 0.3, 0.5, 0x1a1c20); B.add(29.4, 1.0, 29.6, 0.35, 0.22, 0.4, 0x9aa0a8); B.add(29.4, 0.95, 31.6, 0.5, 0.06, 1.0, 0xbfc5cc); // microwave, coffee machine, sink
+  mk(new THREE.BoxGeometry(6.0, 0.06, 1.4), wood, 21, 1.0, 28); B.add(21, 0.5, 28, 5.8, 1.0, 1.2, 0xe9e2d2); addCol(21, 28, 6.0, 1.4, 1.0);
+  for (let i = 0; i < 5; i++) [26.7, 29.3].forEach((z) => { const x = 18.9 + i * 1.05; B.add(x, 0.72, z, 0.4, 0.06, 0.4, 0x8c3f4a); B.add(x, 0.36, z, 0.06, 0.72, 0.06, 0x15171b); B.add(x, 0.02, z, 0.35, 0.04, 0.35, 0x15171b); });
+  [[16.5, 32.5], [21, 33], [25.5, 32.5], [24, 23.5], [27, 23.5]].forEach((q) => {
+    mk(new THREE.CylinderGeometry(0.55, 0.55, 0.06, 18), wood, q[0], 1.1, q[1]); B.add(q[0], 0.55, q[1], 0.1, 1.1, 0.1, 0x15171b); B.add(q[0], 0.03, q[1], 0.55, 0.05, 0.55, 0x15171b); addCol(q[0], q[1], 1.1, 1.1, 1.1);
+    for (let i = 0; i < 3; i++) { const an = i * 2.094 + 0.5, sx = q[0] + Math.cos(an) * 0.85, sz = q[1] + Math.sin(an) * 0.85; B.add(sx, 0.7, sz, 0.38, 0.06, 0.38, 0x3f6e8c); B.add(sx, 0.35, sz, 0.06, 0.7, 0.06, 0x15171b); B.add(sx, 0.02, sz, 0.34, 0.04, 0.34, 0x15171b); }
+  });
+  [[13.6, 0xb0252b], [14.8, 0x1f6fd0]].forEach((v) => { B.add(v[0], 1.0, 35.3, 1.0, 2.0, 0.8, v[1]); B.add(v[0], 1.25, 34.88, 0.7, 1.1, 0.04, 0x15171b); addCol(v[0], 35.3, 1.0, 0.8, 2.0); }); B.add(16.4, 0.55, 35.4, 0.4, 1.1, 0.4, 0xdfe6ec); addCol(16.4, 35.4, 0.4, 0.4, 1.1);
+  const pl = new THREE.PointLight(0xffd9a0, 1.0, 22, 2); pl.position.set(21, 3.0, 28); world.add(pl);
+  B.build(stdMat({ color: 0xffffff, roughness: 0.8, envMapIntensity: 0.3 }), true);
+  SC.build(new THREE.MeshBasicMaterial({ color: 0xffffff }), false);
+  [-24, -16, -8, 0, 8, 16, 24].forEach((x) => { for (let z = -32; z <= 32; z += 8) LT.add(x, H - 0.05, z, 2.4, 0.06, 0.7, Math.random() < 0.15 ? 0x2a2c30 : 0xf4f1e6); });
+  LT.build(new THREE.MeshBasicMaterial({ color: 0xffffff }), false);
+  [[0, -30], [0, -14], [0, 2], [0, 18], [0, 30], [-21, -6], [21, 8]].forEach((p) => { const l = new THREE.PointLight(0xfff0dd, 1.1, 32, 2); l.position.set(p[0], 3.1, p[1]); world.add(l); });
+}
+
 /* ---- map: Training Range (one big DSR meeting room; the player cannot move) ---- */
 const TR = { pz: -2.5, slots: [[-2.6, -15.5], [0, -15.5], [2.6, -15.5]], list: [], last: [], t: [0, 0, 0] }, TRAIN_HITS = 5, TRAIN_DIST = 10; // Training Range: player-to-zombie distance in metres
 const isTrain = () => curMap === 'training' || curMap === 'sandbag', trainHits = () => curMap === 'sandbag' ? 8 : TRAIN_HITS;
@@ -800,11 +941,18 @@ const MAPS_ALL = {
     hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 },
   office: { name: 'DSR 19th Floor', tag: 'Night · office floor', half: 44, build: buildOffice, ground: [carpetTex, 0xffffff],
     sky: { hor: [0.07, 0.08, 0.1], top: [0.04, 0.045, 0.06], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.15, 0.95, 0.2], fog: 0.013,
-    hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 }
+    hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 },
+  office2: { name: 'NOVA Tower 7th Floor', tag: 'Night \u00b7 open-plan office', half: 36, xs: 30, start: [0, 24], build: buildOffice2, ground: [carpetTex, 0xffffff],
+    sky: { hor: [0.07, 0.08, 0.1], top: [0.04, 0.045, 0.06], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.15, 0.95, 0.2], fog: 0.015,
+    hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 } // second office map: shown as a map type under the DSR button (not a menu tile of its own)
 };
 const MAPS = { office: MAPS_ALL.office, training: MAPS_ALL.training, sandbag: MAPS_ALL.sandbag }; // order = order of the menu buttons; first = default
 let curMap = 'office';
-try { const sv = localStorage.getItem('layoutsniper.map2'); if (sv && MAPS[sv]) curMap = sv; } catch (e) { /* storage unavailable */ }
+try { const sv = localStorage.getItem('layoutsniper.map2'); if (sv && MAPS_ALL[sv]) curMap = sv; } catch (e) { /* storage unavailable */ }
+const isOfficeMap = (id) => (id || curMap) === 'office' || (id || curMap) === 'office2'; // the survival maps (DSR 19th Floor + NOVA Tower)
+let officeVar = 'office'; // which survival map the first menu button stands for
+try { const ov = localStorage.getItem('layoutsniper.officeVar'); if (ov === 'office2') officeVar = ov; } catch (e) { /* storage unavailable */ }
+if (isOfficeMap(curMap)) officeVar = curMap;
 
 let envTex = null;
 function rebuildEnv() {
@@ -823,7 +971,7 @@ function clearWorld() {
   COL.length = 0; GATES.length = 0;
 }
 function loadMap(id) {
-  const M = MAPS[id] || MAPS.office; curMap = MAPS[id] ? id : 'office'; clearWorld(); HALF = M.half;
+  const M = MAPS_ALL[id] || MAPS.office; curMap = MAPS_ALL[id] ? id : 'office'; clearWorld(); HALF = M.half;
   const S = M.sky;
   SKY.hor.value.setRGB(S.hor[0], S.hor[1], S.hor[2]); SKY.top.value.setRGB(S.top[0], S.top[1], S.top[2]);
   SKY.glowCol.value.setRGB(S.glow[0], S.glow[1], S.glow[2]); SKY.discCol.value.setRGB(S.disc[0], S.disc[1], S.disc[2]);
@@ -1651,7 +1799,7 @@ function spawnOne() {
   let best = null, bd = -1; const opts = [];
   for (const g of GATES) { const d = Math.hypot(g[0] - P.x, g[1] - P.z); if (d > 22) opts.push(g); if (d > bd) { bd = d; best = g; } }
   const g = opts.length ? opts[(Math.random() * opts.length) | 0] : best;
-  const ty = pickType(); if (curMap !== 'office') announce(ty); // no "New: ..." popup on the DSR map
+  const ty = pickType(); if (!isOfficeMap()) announce(ty); // no "New: ..." popup on the survival maps
   const e = makeZombie(ty, g[0] + rand(-1.5, 1.5), g[1] + rand(-1.5, 1.5), false);
   pushOut(e, 0.5 * e.sc);
 }
@@ -1962,7 +2110,7 @@ function startGame() {
   initAudio();
   clearEnemies();
   WEAPONS.forEach((x) => { x.mag = x.magMax; x.reserve = x.res0; }); NADES.forEach((n) => scene.remove(n.m)); NADES.length = 0;
-  Object.assign(P, { x: 0, z: 0, y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0, hp: maxHp(), dead: false, kickP: 0, shake: 0, speed: 0 });
+  Object.assign(P, { x: (MAPS_ALL[curMap].start || [0, 0])[0], z: (MAPS_ALL[curMap].start || [0, 0])[1], y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0, hp: maxHp(), dead: false, kickP: 0, shake: 0, speed: 0 });
   Object.assign(S, { score: 0, kills: 0, heads: 0, shots: 0, hits: 0 });
   cur = 0; fireT = 0.4; reloadT = 0; swapT = 0.4; bloom = 0; kick = 0; dmgFlash = 0; W.n = 0; W.state = 'idle';
   state = 'playing'; paused = false;
@@ -1986,6 +2134,11 @@ Object.keys(MAPS).forEach((id) => {
   b.addEventListener('click', () => selectMap(id)); mapBox.appendChild(b);
 });
 const sbBox = $('sbOpts');
+['office', 'office2'].forEach((id) => { // map types shown under the first (DSR) button
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'mapb'; b.dataset.id = id; b.dataset.kind = 'map'; b.setAttribute('role', 'radio');
+  b.innerHTML = '<b>' + MAPS_ALL[id].name + '</b><small>' + MAPS_ALL[id].tag + '</small>';
+  b.addEventListener('click', () => selectMap(id, true)); sbBox.appendChild(b);
+});
 [['front', '\uc55e\ucabd 3\ub9c8\ub9ac \ub79c\ub364', 'Front \u00b7 3 random zombies ahead'], ['line', '\uc67c\ucabd \uc77c\ub82c \uc804\uccb4', 'Left wall \u00b7 every zombie in a row']].forEach((o) => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'mapb'; b.dataset.id = o[0]; b.setAttribute('role', 'radio');
   b.innerHTML = '<b>' + o[1] + '</b><small>' + o[2] + '</small>';
@@ -1993,13 +2146,19 @@ const sbBox = $('sbOpts');
   sbBox.appendChild(b);
 });
 function markMap() {
-  { const on = curMap === 'sandbag'; sbBox.style.visibility = on ? 'visible' : 'hidden'; sbBox.style.pointerEvents = on ? 'auto' : 'none'; sbBox.setAttribute('aria-hidden', on ? 'false' : 'true'); } // always keeps its space so the menu never shifts
-  for (const b of sbBox.children) { const on = b.dataset.id === sbLayout; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
-  for (const b of mapBox.children) { const on = b.dataset.id === curMap; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
-  $('kick').textContent = MAPS[curMap].name + (isTrain() ? ' \u00b7 practice, no score' : ' \u00b7 endless waves');
+  const offc = isOfficeMap(curMap);
+  { const on = curMap === 'sandbag' || offc; sbBox.style.visibility = on ? 'visible' : 'hidden'; sbBox.style.pointerEvents = on ? 'auto' : 'none'; sbBox.setAttribute('aria-hidden', on ? 'false' : 'true'); } // always keeps its space so the menu never shifts
+  for (const b of sbBox.children) { const isMap = b.dataset.kind === 'map', on = isMap ? b.dataset.id === curMap : b.dataset.id === sbLayout; b.hidden = isMap ? !offc : curMap !== 'sandbag'; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false'); }
+  for (const b of mapBox.children) {
+    const on = b.dataset.id === 'office' ? offc : b.dataset.id === curMap; b.classList.toggle('on', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+    if (b.dataset.id === 'office') { const mm = MAPS_ALL[offc ? curMap : officeVar]; b.innerHTML = '<b>' + mm.name + '</b><small>' + mm.tag + '</small>'; } // the first button always names the survival map that is (or will be) played
+  }
+  $('kick').textContent = MAPS_ALL[curMap].name + (isTrain() ? ' \u00b7 practice, no score' : ' \u00b7 endless waves');
 }
-function selectMap(id) {
+function selectMap(id, variant) {
   if (state === 'playing') return;
+  if (id === 'office' && !variant) { if (isOfficeMap(curMap)) { markMap(); return; } id = officeVar; } // first button: keep the survival map already chosen (the type row appears below), or return to the last one used
+  if (isOfficeMap(id)) { officeVar = id; try { localStorage.setItem('layoutsniper.officeVar', id); } catch (e) { /* ignore */ } }
   if (id !== curMap) { loadMap(id); menuScene(); try { localStorage.setItem('layoutsniper.map2', id); } catch (e) { /* ignore */ } }
   markMap();
 }
@@ -2094,7 +2253,7 @@ function renderRank() {
     const li = document.createElement('li'); if (lastEntry && e.u === lastEntry.u) li.className = 'me';
     const a = document.createElement('span'); a.textContent = String(i + 1);
     const b = document.createElement('span'); b.className = 'nm'; b.textContent = fmtDate(e.t);
-    const c = document.createElement('small'); c.textContent = (MAPS[e.m] ? MAPS[e.m].name : '') + (e.w ? ' \u00b7 wave ' + e.w : '');
+    const c = document.createElement('small'); c.textContent = (MAPS_ALL[e.m] ? MAPS_ALL[e.m].name : '') + (e.w ? ' \u00b7 wave ' + e.w : '');
     const d = document.createElement('b'); d.textContent = Number(e.s).toLocaleString();
     li.append(a, b, c, d); ul.appendChild(li);
   });
@@ -2272,11 +2431,11 @@ const cache = {}; function setT(id, v) { if (cache[id] !== v) { cache[id] = v; $
 const MM = { c: null, g: null, t: 0 };
 function drawMinimap(dt) { // DSR 19th floor only: green = you (triangle = facing), red = zombies, top = start direction
   if (!MM.c) { MM.c = $('mm'); MM.g = MM.c.getContext('2d'); }
-  const show = curMap === 'office' && state === 'playing';
+  const show = isOfficeMap() && state === 'playing';
   if (MM.c.classList.contains('on') !== show) MM.c.classList.toggle('on', show);
   if (!show) return;
   MM.t -= dt; if (MM.t > 0) return; MM.t = 0.05;
-  const g = MM.g, W = MM.c.width, H = MM.c.height, XS = 38, ZS = HALF, X = (x) => (x + XS) / (XS * 2) * W, Z = (z) => (z + ZS) / (ZS * 2) * H;
+  const g = MM.g, W = MM.c.width, H = MM.c.height, XS = MAPS_ALL[curMap].xs || 38, ZS = HALF, X = (x) => (x + XS) / (XS * 2) * W, Z = (z) => (z + ZS) / (ZS * 2) * H;
   g.clearRect(0, 0, W, H);
   g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(X(-8), 0, X(8) - X(-8), H); // lobby strip
   g.fillStyle = 'rgba(255,60,40,.45)'; for (const q of GATES) g.fillRect(X(q[0]) - 3, Z(q[1]) - 3, 6, 6); // spawn doors
