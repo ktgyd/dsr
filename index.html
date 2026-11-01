@@ -1,5 +1,5 @@
-<!doctype html><html><head><meta charset=utf8><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b0c0f"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Layout Sniper"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="icon-192.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Layout Sniper</title>
+<!doctype html><html><head><meta charset=utf8><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0b0c0f"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Office Sniper"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" type="image/png" href="icon-192.png"><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Office Sniper</title>
 <style>
 /* Layout: full-bleed first-person view. Wave + score on the top edge, health bottom-left, ammo bottom-right, menu panel left. */
 :root {
@@ -222,6 +222,8 @@ body:has(#menu:not([hidden])) #touch { display: none !important; } /* on-screen 
 .vlist li { padding: 8px 10px; border: 1px solid var(--line); background: rgba(255,255,255,.04); display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; }
 .vlist .vn { font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: .06em; }
 .vlist .vs { font-family: var(--f-mono); font-size: 11px; color: var(--amber); text-align: right; white-space: nowrap; }
+.vlist .vn.vedit { cursor: pointer; justify-self: start; border-bottom: 1px dashed rgba(255,255,255,.35); }
+.vlist .vin { font-family: var(--f-display); font-weight: 800; font-size: 16px; width: 100%; box-sizing: border-box; background: rgba(0,0,0,.45); color: #fff; border: 1px solid var(--amber); border-radius: 0; padding: 3px 6px; outline: none; }
 .vlist small { grid-column: 2 / -1; color: var(--muted); font-size: 12px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 * { touch-action: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
@@ -259,7 +261,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
   <div class="panel">
     <div class="mhead">
     <p class="kicker" id="kick">DSR 19th Floor &middot; endless waves</p>
-    <h1>Layout<br>Sniper</h1>
+    <h1>Office<br>Sniper</h1>
     <p class="lede">The gates open every few minutes and the dead walk in. Hold the floor, stay lit, and count your magazines.</p>
     </div>
     <div class="mbody">
@@ -289,7 +291,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 </section>
 
 <section id="villains" class="screen inset" hidden>
-  <div class="panel card"><p class="kicker">Know your enemy</p><h1 style="font-size:clamp(30px,6vw,52px)">Villain List</h1><ul class="vlist" id="vList"></ul><p class="vhint" id="vHint"></p><div class="row"><button class="btn ghost" id="vClose">Close</button></div></div>
+  <div class="panel card"><p class="kicker">Know your enemy</p><h1 style="font-size:clamp(30px,6vw,52px)">Villain List</h1><ul class="vlist" id="vList"></ul><p class="vhint" id="vHint"></p><div class="row"><button class="btn ghost" id="vReset">Reset names</button><button class="btn ghost" id="vClose">Close</button></div></div>
 </section>
 
 <section id="over" class="screen inset" hidden>
@@ -312,6 +314,9 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 <div id="err" hidden>이 브라우저에서는 WebGL을 시작할 수 없습니다. 최신 Chrome, Edge, Safari 또는 Firefox에서 열어 주세요.</div>
 
 <script>
+/* one-time carry-over: data saved under the old game name (layoutsniper.*) is copied to the new name (officesniper.*); from then on everything is read and written under the new name. The old copies are left untouched as a backup. */
+try { const olds = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('layoutsniper.') === 0) olds.push(k); } olds.forEach((k) => { const nk = 'officesniper.' + k.slice(13); if (localStorage.getItem(nk) === null) localStorage.setItem(nk, localStorage.getItem(k)); }); } catch (e) { /* storage unavailable */ }
+
 /* Keep Safari from zooming: pinch, double-tap, trackpad pinch and ctrl+wheel. */
 (function () {
   var m = document.querySelector('meta[name=viewport]');
@@ -337,7 +342,7 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const rand = (a, b) => a + Math.random() * (b - a);
-let HALF = 40;
+let HALF = 40, CEIL = 1e9; // CEIL = ceiling height of the current map (1e9 = open sky): the head is stopped below it
 const touchMode = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
 if (touchMode) document.body.classList.add('touchmode');
 
@@ -597,7 +602,7 @@ function buildOffice() {
   [[0, -S - 1, XS * 2 + 4, 2], [0, S + 1, XS * 2 + 4, 2], [-XS - 1, 0, 2, S * 2 + 4], [XS + 1, -27.5, 2, 37], [XS + 1, 27.5, 2, 37]].forEach((w) => { mk(new THREE.BoxGeometry(w[2], H, w[3]), wm, w[0], H / 2, w[1]); addCol(w[0], w[1], w[2], w[3], H); });
   // ceiling (single-sided: invisible from above so the menu camera can look down into the floor)
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(XS * 2, S * 2), stdMat({ color: 0xd8d3c7, roughness: 1, envMapIntensity: 0.1 }));
-  ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil);
+  ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil); CEIL = H;
   // polished lobby + corridor floor
   const tile = new THREE.Mesh(new THREE.PlaneGeometry(16, S * 2), stdMat({ map: hallTex, roughness: 0.38, metalness: 0.1, envMapIntensity: 0.5 }));
   tile.rotation.x = -Math.PI / 2; tile.position.y = 0.02; tile.receiveShadow = true; world.add(tile);
@@ -768,7 +773,7 @@ function buildOffice2() {
   const wm = stdMat({ map: officeWallTex, emissiveMap: officeWallTex, emissive: 0xffffff, emissiveIntensity: 0.4, envMapIntensity: 0.2 });
   [[0, -S - 1, XS * 2 + 4, 2], [0, S + 1, XS * 2 + 4, 2], [-XS - 1, 0, 2, S * 2 + 4], [XS + 1, 0, 2, S * 2 + 4]].forEach((w) => { mk(new THREE.BoxGeometry(w[2], H, w[3]), wm, w[0], H / 2, w[1]); addCol(w[0], w[1], w[2], w[3], H); });
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(XS * 2, S * 2), stdMat({ color: 0xd8d3c7, roughness: 1, envMapIntensity: 0.1 }));
-  ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil);
+  ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil); CEIL = H;
   const tile = new THREE.Mesh(new THREE.PlaneGeometry(24, 16), stdMat({ map: hallTex, roughness: 0.38, metalness: 0.1, envMapIntensity: 0.5 }));
   tile.rotation.x = -Math.PI / 2; tile.position.set(0, 0.02, 28); tile.receiveShadow = true; world.add(tile); // polished reception floor
   // gates = stairwell doors (8), all in the open corridors
@@ -966,7 +971,7 @@ function buildTower() {
   bx(22.5, 2.55, -5.2, 5.4, 0.12, 2.0, 0x7d8287); [20, 25].forEach((x) => { bx(x, 1.25, -5.9, 0.12, 2.5, 0.12, 0x7d8287); addCol(x, -5.9, 0.3, 0.3, 2.5); }); bx(22.5, 1.2, -6.0, 4.6, 2.2, 0.05, 0x9ecbe0); bx(22.5, 0.5, -5.5, 3.2, 0.1, 0.5, 0x7a5636); addCol(22.5, -5.5, 3.2, 0.6, 0.5);
   [[-12, 33, 0x7a5636], [12, 33, 0x7a5636], [-30, 25.6, 0x7a5636], [30, 25.6, 0x7a5636]].forEach((b) => { bx(b[0], 0.42, b[1], 1.8, 0.1, 0.5, b[2]); bx(b[0], 0.7, b[1] + 0.22, 1.8, 0.45, 0.08, b[2]); addCol(b[0], b[1], 1.9, 0.6, 0.7); });
   // --- stranded cars (cover): body, glass cabin, wheels ---
-  const car = (x, z, col, alongX) => { const L = 4.4, W2 = 1.85, lx = alongX ? L : W2, lz = alongX ? W2 : L; bx(x, 0.55, z, lx, 0.7, lz, col); bx(x, 1.2, z, alongX ? L * 0.55 : W2 * 0.9, 0.62, alongX ? W2 * 0.9 : L * 0.55, 0x20252b); bx(x, 1.54, z, alongX ? L * 0.5 : W2 * 0.85, 0.07, alongX ? W2 * 0.85 : L * 0.5, col); [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach((w) => bx(x + (alongX ? w[0] * L * 0.32 : w[1] * W2 * 0.5), 0.3, z + (alongX ? w[1] * W2 * 0.5 : w[0] * L * 0.32), alongX ? 0.7 : 0.22, 0.6, alongX ? 0.22 : 0.7, 0x111111)); addCol(x, z, lx, lz, 1.4); };
+  const car = (x, z, col, alongX) => { const L = 4.4, W2 = 1.85, lx = alongX ? L : W2, lz = alongX ? W2 : L; bx(x, 0.55, z, lx, 0.7, lz, col); bx(x, 1.2, z, alongX ? L * 0.55 : W2 * 0.9, 0.62, alongX ? W2 * 0.9 : L * 0.55, 0x20252b); bx(x, 1.54, z, alongX ? L * 0.5 : W2 * 0.85, 0.07, alongX ? W2 * 0.85 : L * 0.5, col); [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach((w) => bx(x + (alongX ? w[0] * L * 0.32 : w[1] * W2 * 0.5), 0.3, z + (alongX ? w[1] * W2 * 0.5 : w[0] * L * 0.32), alongX ? 0.7 : 0.22, 0.6, alongX ? 0.22 : 0.7, 0x111111)); addCol(x, z, lx, lz, 0.9); addCol(x, z, alongX ? L * 0.55 : W2 * 0.9, alongX ? W2 * 0.9 : L * 0.55, 1.57); }; // two climbable steps: the body / hood (0.9 m) from the ground, then the cabin roof (1.57 m) from the body
   [[-40, 1.6, 0xd7dadd], [-22, 7.6, 0x2b2f35], [-12, 4.9, 0xb7bcc2], [6, 1.5, 0xe7e9ec], [16, 7.9, 0x7a2430], [44, 4.8, 0xd7dadd], [-30, 12.6, 0x3a4048], [-8, 15.4, 0xe7e9ec], [12, 18.2, 0x8b9199], [30, 13.0, 0xd7dadd], [46, 16.0, 0x20252a], [-46, 15.2, 0xb7bcc2], [-18, -1.5, 0xf2f3f5], [27, -1.6, 0xf2f3f5], [0, 14.4, 0x4a6a8a], [-60, 4.9, 0xd7dadd], [-66, 12.8, 0x2b2f35], [60, 7.8, 0xb7bcc2], [66, 15.4, 0xe7e9ec], [-80, 1.6, 0xb7bcc2], [78, 4.9, 0x3a4048], [90, 13.0, 0xe7e9ec]].forEach((c) => car(c[0], c[1], c[2], true));
   // --- east: open-deck parking garage (x 72..100). The side road runs north along its west face; at the end you turn right into the entrance tunnel (z -38..-30) ---
   const gt = (w, h) => { const t = garageTex.clone(); t.needsUpdate = true; t.repeat.set(w / 8, h / 3.2); return stdMat({ map: t, roughness: 0.9, envMapIntensity: 0.2 }); };
@@ -979,8 +984,8 @@ function buildTower() {
   const gs = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.9), new THREE.MeshBasicMaterial({ map: signTex('P', 'PARKING') })); gs.position.set(71.9, 5.4, -34); gs.rotation.y = -Math.PI / 2; world.add(gs);
   // --- west: the small grey office block (half size) with its door onto a wooden landing; wooden stairs run down from it to the sidewalk before the central road ---
   const wood = [0x8a6238, 0x7d5a34], OX = -75; // office block x -87..-63, flush against tower A; the stairs run down from its door (x -78..-72)
-  mk(new THREE.BoxGeometry(24, 12, 12), concrete, OX, 6, -34, 0, true); addCol(OX, -34, 24, 12, 12);
-  for (let f = 0; f < 3; f++) bx(OX, 3.0 + f * 3.0, -27.95, 22.4, 1.2, 0.05, 0x35506b); bx(OX, 2.7, -27.93, 2.6, 2.4, 0.06, 0x14181c); bx(OX, 4.2, -27.2, 4.0, 0.2, 1.6, 0x7d8287);
+  mk(new THREE.BoxGeometry(24, 24, 12), concrete, OX, 12, -34, 0, true); addCol(OX, -34, 24, 12, 24);
+  for (let f = 0; f < 6; f++) bx(OX, 3.0 + f * 3.6, -27.95, 22.4, 1.2, 0.05, 0x35506b); bx(OX, 2.7, -27.93, 2.6, 2.4, 0.06, 0x14181c); bx(OX, 4.2, -27.2, 4.0, 0.2, 1.6, 0x7d8287);
   bx(OX, 0.75, -27, 6, 1.5, 2.0, 0x9a6d3f); addCol(OX, -27, 6, 2.0, 1.5, true); bx(OX - 3.05, 1.95, -27, 0.1, 0.9, 2.0, 0x5a3b22); bx(OX + 3.05, 1.95, -27, 0.1, 0.9, 2.0, 0x5a3b22); // landing at door level (1.5 m)
   for (let i = 0; i < 6; i++) { const zc = -24.9 + 2.2 * i, h = 1.5 - 0.15 * (i + 1); bx(OX, h / 2, zc, 6, h, 2.2, wood[i % 2]); addCol(OX, zc, 6, 2.2, h, true); [-3.05, 3.05].forEach((sx) => bx(OX + sx, h + 0.45, zc, 0.1, 0.9, 2.2, 0x5a3b22)); } // flight 1: six 0.15 m risers south from the landing (z -26..-12.8)
   bx(-75, 0.225, -10.5, 6, 0.45, 4.6, 0x9a6d3f); addCol(-75, -10.5, 6, 4.6, 0.45, true); // turning platform (0.45 m): the stairs bend west here, well before the sidewalk
@@ -1011,7 +1016,7 @@ const TR = { pz: -2.5, slots: [[-2.6, -15.5], [0, -15.5], [2.6, -15.5]], list: [
 const isTrain = () => curMap === 'training' || curMap === 'sandbag', trainHits = () => curMap === 'sandbag' ? 8 : TRAIN_HITS;
 const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
 let sbLayout = 'front'; // Sandbag layout: 'front' = 3 random targets ahead, 'line' = every zombie kneeling in a row along the left wall
-try { const sv = localStorage.getItem('layoutsniper.sbLayout'); if (sv === 'front' || sv === 'line') sbLayout = sv; } catch (e) { /* storage unavailable */ }
+try { const sv = localStorage.getItem('officesniper.sbLayout'); if (sv === 'front' || sv === 'line') sbLayout = sv; } catch (e) { /* storage unavailable */ }
 const sbLine = () => curMap === 'sandbag' && sbLayout === 'line';
 const trainCount = () => sbLine() ? TRAIN_TYPES.length : 3;
 function trainSlot(i) { // -> [x, z, facing]
@@ -1024,7 +1029,7 @@ function buildTraining() {
   const wl = wmat(5), we = wmat(2.5), wood = stdMat({ color: 0x7a5636, roughness: 0.55 }), dark = stdMat({ color: 0x20232a, roughness: 0.7 }), white = stdMat({ color: 0xf2f4f6, roughness: 0.5 });
   [[0, -ZS - 1, XS * 2 + 4, 2, we], [0, ZS + 1, XS * 2 + 4, 2, we], [-XS - 1, 0, 2, ZS * 2, wl], [XS + 1, 0, 2, ZS * 2, wl]].forEach((w) => { mk(new THREE.BoxGeometry(w[2], H, w[3]), w[4], w[0], H / 2, w[1]); addCol(w[0], w[1], w[2], w[3], H); });
   const ceil = new THREE.Mesh(new THREE.PlaneGeometry(XS * 2, ZS * 2), stdMat({ color: 0xd8d3c7, roughness: 1, envMapIntensity: 0.1 }));
-  ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil);
+  ceil.rotation.x = Math.PI / 2; ceil.position.y = H; world.add(ceil); CEIL = H;
   const B = new Batch(), LT = new Batch();
   [-1, 1].filter((s) => !(sbLine() && s === -1)).forEach((s) => { // left-line layout: the zombie side (left) stays empty, the right side keeps its tables/chairs
     const tx = s * 5.2;
@@ -1060,11 +1065,11 @@ const MAPS_ALL = {
 };
 const MAPS = { office: MAPS_ALL.office, training: MAPS_ALL.training, sandbag: MAPS_ALL.sandbag }; // order = order of the menu buttons; first = default
 let curMap = 'office';
-try { const sv = localStorage.getItem('layoutsniper.map2'); if (sv && MAPS_ALL[sv]) curMap = sv; } catch (e) { /* storage unavailable */ }
+try { const sv = localStorage.getItem('officesniper.map2'); if (sv && MAPS_ALL[sv]) curMap = sv; } catch (e) { /* storage unavailable */ }
 const SURVIVAL_MAPS = ['office', 'office2', 'tower'];
 const isOfficeMap = (id) => SURVIVAL_MAPS.indexOf(id || curMap) >= 0; // the survival maps (DSR 19th Floor, NOVA Tower, DSR Tower Front)
 let officeVar = 'office'; // which survival map the first menu button stands for
-try { const ov = localStorage.getItem('layoutsniper.officeVar'); if (SURVIVAL_MAPS.indexOf(ov) >= 0) officeVar = ov; } catch (e) { /* storage unavailable */ }
+try { const ov = localStorage.getItem('officesniper.officeVar'); if (SURVIVAL_MAPS.indexOf(ov) >= 0) officeVar = ov; } catch (e) { /* storage unavailable */ }
 if (isOfficeMap(curMap)) officeVar = curMap;
 
 let envTex = null;
@@ -1095,7 +1100,7 @@ function loadMap(id) {
   moon.color.setHex(M.sun[0]); moon.intensity = M.sun[1]; renderer.toneMappingExposure = M.exp;
   ground.material.map = M.ground[0]; ground.material.color.setHex(M.ground[1]); ground.material.needsUpdate = true;
   { const sc = moon.shadow.camera, r = M.shadowR || 62; sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.updateProjectionMatrix(); } // wider sun-shadow area for the big outdoor map (other maps keep 62)
-  M.build();
+  CEIL = 1e9; M.build();
   navBuild();
   document.body.classList.toggle('training', isTrain()); document.body.classList.toggle('lockmove', curMap === 'training'); $('s6').hidden = curMap !== 'sandbag';
   rebuildEnv();
@@ -1471,22 +1476,38 @@ const acidGeo = new THREE.SphereGeometry(0.13, 10, 8), acidMat = new THREE.MeshB
 const acidGlow = new THREE.SpriteMaterial({ map: glowTex, color: 0x7aff20, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
 const seen = {};
 const INTRO = { runner: ['삼드', 'Fast and fragile'], tongyeongj: ['통영J', 'Plain and steady'], jjakbural: ['짝부랄', 'Plain and steady'], sosung: ['소승h', 'A charging bull. Mind the horns'], ongmani: ['옹마니', 'The bride. Huge and slow. Aim for the head'], crawler: ['노시드', 'Low profile. Aim low'], spitter: ['킥ㄱ우', 'Acid from a distance'], bloater: ['덩어리', 'Pop them from afar'], riot: ['홍게이', 'Armored. Aim for the gaps'], brute: ['리짜이밍', 'Heavy and relentless'], mukking: ['먹킹대장', 'Big appetite. Big trouble'], godu: ['고두', 'Even bigger. Even hungrier'], jjiru: ['찌루', 'Waddles in pain'], geobuk: ['ㅈ우', 'Neck first. Leaning in'], johnson: ['존슨', 'Huge and slow. Aim for the head'], dongmin: ['똥min', 'Armored. Aim for the gaps'], ybam: ['Y뱀', 'Shoulders up to the ears'] };
-function announce(t) { if (seen[t] || !INTRO[t]) return; seen[t] = 1; toast('New: ' + INTRO[t][0], INTRO[t][1], 2800); }
+function announce(t) { if (seen[t] || !INTRO[t]) return; seen[t] = 1; toast('New: ' + (customNames[t] || INTRO[t][0]), INTRO[t][1], 2800); }
 function clearFx() { for (const p of projectiles) scene.remove(p.mesh); projectiles.length = 0; for (const p of pools) p.m.visible = false; for (const k in seen) delete seen[k]; }
 
 /* ---- name tags (temporary): edit the names / heights here ---- */
 const ZOMBIE_NAMES = { runner: '삼드', jjakbural: '짝부랄', sosung: '소승h', ongmani: '옹마니', tongyeongj: '통영J', brute: '리짜이밍', crawler: '노시드', spitter: '킥ㄱ우', bloater: '덩어리', riot: '홍게이', mukking: '먹킹대장', godu: '고두', huru: '후루', judalgeun: 'Joo딸근', opl: '오피엘', jjiru: '찌루', geobuk: 'ㅈ우', johnson: '존슨', dongmin: '똥min', ybam: 'Y뱀' };
 const TAG_Y = { runner: 2.2, jjakbural: 2.2, ongmani: 2.05, tongyeongj: 2.2, brute: 2.0, crawler: 1.15, spitter: 2.3, bloater: 2.05, riot: 2.25, mukking: 2.4, godu: 2.15, huru: 2.2, judalgeun: 2.2, opl: 2.2, jjiru: 2.1, geobuk: 2.3, johnson: 2.0, dongmin: 2.25, ybam: 2.15, sosung: 2.1 }; // height above the feet (before the zombie's own scale)
 const tagMats = {};
-function tagMat(type) {
-  if (tagMats[type]) return tagMats[type];
-  const c = document.createElement('canvas'); c.width = 320; c.height = 80; const x = c.getContext('2d');
+const ZOMBIE_NAMES_DEFAULT = Object.assign({}, ZOMBIE_NAMES), NAMES_KEY = 'officesniper.names'; // the villain names you edit in Villain List are kept on this device (same key prefix as the saves)
+let customNames = {}; try { customNames = JSON.parse(localStorage.getItem(NAMES_KEY)) || {}; } catch (e) { customNames = {}; }
+for (const k in customNames) { if (ZOMBIE_NAMES_DEFAULT[k] !== undefined && typeof customNames[k] === 'string' && customNames[k]) ZOMBIE_NAMES[k] = customNames[k]; else delete customNames[k]; }
+function saveNames() { try { if (Object.keys(customNames).length) localStorage.setItem(NAMES_KEY, JSON.stringify(customNames)); else localStorage.removeItem(NAMES_KEY); } catch (e) { /* storage unavailable */ } }
+function drawTag(c, type) {
+  const x = c.getContext('2d'); x.clearRect(0, 0, c.width, c.height);
   x.fillStyle = 'rgba(8,10,14,.78)'; x.beginPath(); if (x.roundRect) x.roundRect(4, 4, 312, 72, 14); else x.rect(4, 4, 312, 72); x.fill();
   x.strokeStyle = '#ffb02e'; x.lineWidth = 4; x.stroke();
-  x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.font = 'bold 40px Arial, "Malgun Gothic", sans-serif'; x.fillText(ZOMBIE_NAMES[type] || type, 160, 42);
+  const nm = ZOMBIE_NAMES[type] || type; let fs = 40; x.font = 'bold ' + fs + 'px Arial, "Malgun Gothic", sans-serif'; while (fs > 18 && x.measureText(nm).width > 290) { fs -= 2; x.font = 'bold ' + fs + 'px Arial, "Malgun Gothic", sans-serif'; } // long custom names shrink to fit the plate
+  x.fillStyle = '#ffffff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(nm, 160, 42);
+}
+function tagMat(type) {
+  if (tagMats[type]) return tagMats[type];
+  const c = document.createElement('canvas'); c.width = 320; c.height = 80; drawTag(c, type);
   const tx = new THREE.CanvasTexture(c); tx.encoding = THREE.sRGBEncoding;
   return (tagMats[type] = new THREE.SpriteMaterial({ map: tx, transparent: true, depthWrite: false, fog: false }));
 }
+function refreshTag(type) { const m = tagMats[type]; if (m && m.map) { drawTag(m.map.image, type); m.map.needsUpdate = true; } } // zombies already on the field share this material, so they pick up the new name at once
+function setZombieName(type, raw) {
+  const nm = String(raw || '').trim().slice(0, 14);
+  if (!nm || nm === ZOMBIE_NAMES_DEFAULT[type]) { ZOMBIE_NAMES[type] = ZOMBIE_NAMES_DEFAULT[type]; delete customNames[type]; } // empty or same as the original = back to the default name
+  else { ZOMBIE_NAMES[type] = nm; customNames[type] = nm; }
+  saveNames(); refreshTag(type);
+}
+function resetZombieNames() { for (const k in ZOMBIE_NAMES_DEFAULT) { ZOMBIE_NAMES[k] = ZOMBIE_NAMES_DEFAULT[k]; refreshTag(k); } customNames = {}; saveNames(); }
 function makeZombie(type, x, z, idle) {
   const cfg = TYPES[type], pick = (a) => a[(Math.random() * a.length) | 0];
   const skin = cfg.skin || pick(SKIN_MATS), cloth = cfg.cloth || pick(CLOTH_MATS);
@@ -1611,7 +1632,7 @@ function removeEnemy(e) { scene.remove(e.root); const i = enemies.indexOf(e); if
 
 /* ---------------- state ---------------- */
 /* ---- player level: XP from kills (office runs only) is kept on this device across runs; each level raises max health, damage and speed a little ---- */
-const LV = { xp: 0, lv: 1 }, LV_MAX = 50, LV_KEY = 'layoutsniper.xp';
+const LV = { xp: 0, lv: 1 }, LV_MAX = 50, LV_KEY = 'officesniper.xp';
 const xpAt = (L) => 300 * (L - 1) + 100 * (L - 1) * (L - 2); // total XP needed to reach level L
 const lvOf = (xp) => { let L = 1; while (L < LV_MAX && xp >= xpAt(L + 1)) L++; return L; };
 try { LV.xp = Math.max(0, Number(localStorage.getItem(LV_KEY)) || 0); } catch (e) { /* storage unavailable */ }
@@ -1657,6 +1678,11 @@ const CLIMB_MAX = 1.6, MANTLE = 0.3; // climbable obstacles are up to 1.6 m tall
 function floorAt(x, z, y, r) { // height of the highest low obstacle (<= CLIMB_MAX) the feet can stand on right here; only tops within a mantle step of the feet count
   let f = 0;
   for (let k = 0; k < COL.length; k++) { const c = COL[k]; if (c.h > CLIMB_MAX || c.h <= f || c.h > y + MANTLE) continue; const cx = clamp(x, c.x0, c.x1), cz = clamp(z, c.z0, c.z1), dx = x - cx, dz = z - cz; if (dx * dx + dz * dz < r * r) f = c.h; }
+  return f;
+}
+function stairAt(x, z) { // height of the highest stair tread / landing (st collider) under a point: zombies stand on it and climb
+  let f = 0;
+  for (let k = 0; k < COL.length; k++) { const c = COL[k]; if (!c.st || c.h <= f) continue; if (x > c.x0 && x < c.x1 && z > c.z0 && z < c.z1) f = c.h; }
   return f;
 }
 function blockedAt(x, z, r) {
@@ -1790,9 +1816,9 @@ function fireWeapon() {
         const e = enemies[k]; if (e.dead || (e.idle && !e.train) || skip.indexOf(e) >= 0) continue;
         const dx = e.x - _o.x, dz = e.z - _o.z; if (dx * dx + dz * dz > (tw + 3) * (tw + 3)) continue;
         const s = e.sc, hit = e.cfg.hit, fx = Math.sin(e.rot), fz = Math.cos(e.rot), hh = hit.head;
-        const th = raySphere(_o, _d, e.x + fx * hh[0] * s, hh[1] * s, e.z + fz * hh[0] * s, hh[2] * s);
+        const ey = e.y || 0, th = raySphere(_o, _d, e.x + fx * hh[0] * s, hh[1] * s + ey, e.z + fz * hh[0] * s, hh[2] * s);
         if (th >= 0 && th < bt) { bt = th; best = e; head = true; }
-        for (const b of hit.body) { const tb = raySphere(_o, _d, e.x + fx * b[0] * s, b[1] * s, e.z + fz * b[0] * s, b[2] * s); if (tb >= 0 && tb < bt) { bt = tb; best = e; head = false; } }
+        for (const b of hit.body) { const tb = raySphere(_o, _d, e.x + fx * b[0] * s, b[1] * s + ey, e.z + fz * b[0] * s, b[2] * s); if (tb >= 0 && tb < bt) { bt = tb; best = e; head = false; } }
       }
       if (!best) break;
       skip.push(best); if (firstT < 0) firstT = bt;
@@ -1941,13 +1967,13 @@ function updateWaves(dt) {
 const _lo = new THREE.Vector3(), _ld = new THREE.Vector3();
 function los(e) {
   const dx = P.x - e.x, dz = P.z - e.z, dist = Math.hypot(dx, dz) || 1;
-  _lo.set(e.x, 1.4, e.z); _ld.set(dx, 1.45 + P.y - 1.4, dz).normalize();
+  _lo.set(e.x, 1.4 + (e.y || 0), e.z); _ld.set(dx, 1.45 + P.y - 1.4, dz).normalize();
   for (let k = 0; k < COL.length; k++) { const t = rayBox(_lo, _ld, COL[k]); if (t >= 0 && t < dist) return false; }
   return true;
 }
 function spit(e) {
   e.spitAnim = 0.45; sndSpit();
-  const s = e.sc, o = new THREE.Vector3(e.x + Math.sin(e.rot) * 0.3 * s, 1.5 * s, e.z + Math.cos(e.rot) * 0.3 * s);
+  const s = e.sc, o = new THREE.Vector3(e.x + Math.sin(e.rot) * 0.3 * s, 1.5 * s + (e.y || 0), e.z + Math.cos(e.rot) * 0.3 * s);
   const dx = P.x - o.x, dz = P.z - o.z, dy = 1.4 + P.y - o.y, dist = Math.hypot(dx, dz), sp = 16, tt = Math.max(0.1, dist / sp), g = 7;
   const mesh = new THREE.Mesh(acidGeo, acidMat); mesh.position.copy(o);
   const gl = new THREE.Sprite(acidGlow); gl.scale.set(1.4, 1.4, 1); mesh.add(gl); scene.add(mesh);
@@ -2066,7 +2092,7 @@ function updateEnemies(dt, t) {
       e.arms.forEach((a, idx) => { a.up.rotation.x = lerp(a.up.rotation.x, -0.4 + idx * 0.3, 0.12); a.up.rotation.z = lerp(a.up.rotation.z, (idx ? 1 : -1) * 0.6, 0.12); a.fo.rotation.x = lerp(a.fo.rotation.x, -0.2, 0.12); });
       e.thighs.forEach((th, idx) => { th.rotation.x = lerp(th.rotation.x, idx ? 0.2 : -0.1, 0.1); }); e.shins.forEach((sh) => { sh.rotation.x = lerp(sh.rotation.x, 0.1, 0.1); });
       e.jaw.rotation.x = lerp(e.jaw.rotation.x, 0.6, 0.1);
-      e.root.position.y = e.deadT > 3.5 ? -(e.deadT - 3.5) * 0.5 : 0;
+      e.root.position.y = (e.y || 0) + (e.deadT > 3.5 ? -(e.deadT - 3.5) * 0.5 : 0);
       if (e.deadT > 6) removeEnemy(e); continue;
     }
     const dx = P.x - e.x, dz = P.z - e.z, dist = Math.hypot(dx, dz) || 1, range = cfg.crawl ? 1.1 : 0.7 + 0.45 * e.sc;
@@ -2113,7 +2139,7 @@ function updateEnemies(dt, t) {
     if (pd < pr2 && pd > 1e-6) { e.x = P.x + pdx / pd * pr2; e.z = P.z + pdz / pd * pr2; }
     const target = (moving && !back && e.attackT <= 0) ? Math.atan2(ax, az) : Math.atan2(dx, dz);
     let da = target - e.rot; da = Math.atan2(Math.sin(da), Math.cos(da)); e.rot += da * Math.min(1, dt * 8);
-    e.root.position.x = e.x; e.root.position.z = e.z; e.root.rotation.y = e.rot;
+    { const ty = stairAt(e.x, e.z), ey = e.y || 0; e.y = ey + clamp(ty - ey, -6 * dt, 4 * dt); } e.root.position.x = e.x; e.root.position.y = e.y; e.root.position.z = e.z; e.root.rotation.y = e.rot;
     animZ(e, t, moving, atk);
   }
 }
@@ -2239,7 +2265,7 @@ function startGame() {
   if (isTrain()) startTraining(); else startWave(1);
 }
 function gameOver() {
-  let best = 0; try { best = Number(localStorage.getItem('layoutsniper.best')) || 0; if (S.score > best) { best = S.score; localStorage.setItem('layoutsniper.best', String(best)); } } catch (e) { best = Math.max(best, S.score); }
+  let best = 0; try { best = Number(localStorage.getItem('officesniper.best')) || 0; if (S.score > best) { best = S.score; localStorage.setItem('officesniper.best', String(best)); } } catch (e) { best = Math.max(best, S.score); }
   $('oWave').textContent = W.n; $('oScore').textContent = S.score; $('oKills').textContent = S.kills;
   $('oHead').textContent = (S.kills ? Math.round(S.heads / S.kills * 100) : 0) + '%'; $('oAcc').textContent = (S.shots ? Math.round(S.hits / S.shots * 100) : 0) + '%'; $('oBest').textContent = best;
   $('over').hidden = false; $('hud').hidden = true; $('xh').hidden = true; $('hint').hidden = true;
@@ -2262,7 +2288,7 @@ SURVIVAL_MAPS.forEach((id) => { // map types shown under the first (DSR) button
 [['front', '\uc55e\ucabd 3\ub9c8\ub9ac \ub79c\ub364', 'Front \u00b7 3 random zombies ahead'], ['line', '\uc67c\ucabd \uc77c\ub82c \uc804\uccb4', 'Left wall \u00b7 every zombie in a row']].forEach((o) => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'mapb'; b.dataset.id = o[0]; b.setAttribute('role', 'radio');
   b.innerHTML = '<b>' + o[1] + '</b><small>' + o[2] + '</small>';
-  b.addEventListener('click', () => { if (state === 'playing') return; sbLayout = o[0]; try { localStorage.setItem('layoutsniper.sbLayout', sbLayout); } catch (e) { /* ignore */ } loadMap(curMap); menuScene(); markMap(); });
+  b.addEventListener('click', () => { if (state === 'playing') return; sbLayout = o[0]; try { localStorage.setItem('officesniper.sbLayout', sbLayout); } catch (e) { /* ignore */ } loadMap(curMap); menuScene(); markMap(); });
   sbBox.appendChild(b);
 });
 function markMap() {
@@ -2278,8 +2304,8 @@ function markMap() {
 function selectMap(id, variant) {
   if (state === 'playing') return;
   if (id === 'office' && !variant) { if (isOfficeMap(curMap)) { markMap(); return; } id = officeVar; } // first button: keep the survival map already chosen (the type row appears below), or return to the last one used
-  if (isOfficeMap(id)) { officeVar = id; try { localStorage.setItem('layoutsniper.officeVar', id); } catch (e) { /* ignore */ } }
-  if (id !== curMap) { loadMap(id); menuScene(); try { localStorage.setItem('layoutsniper.map2', id); } catch (e) { /* ignore */ } }
+  if (isOfficeMap(id)) { officeVar = id; try { localStorage.setItem('officesniper.officeVar', id); } catch (e) { /* ignore */ } }
+  if (id !== curMap) { loadMap(id); menuScene(); try { localStorage.setItem('officesniper.map2', id); } catch (e) { /* ignore */ } }
   markMap(); refreshLoadBtn();
 }
 function toMenu() {
@@ -2291,7 +2317,7 @@ function toMenu() {
 $('toMenu').addEventListener('click', toMenu);
 
 /* ---------------- save / load: a survival run (wave, score, health, ammo, position, living zombies); each survival map has its own two slots ---------------- */
-const SAVE_KEYS = { office: ['layoutsniper.save1', 'layoutsniper.save2'], office2: ['layoutsniper.o2save1', 'layoutsniper.o2save2'], tower: ['layoutsniper.tsave1', 'layoutsniper.tsave2'] }; // per map: [newest save, the one saved before it]
+const SAVE_KEYS = { office: ['officesniper.save1', 'officesniper.save2'], office2: ['officesniper.o2save1', 'officesniper.o2save2'], tower: ['officesniper.tsave1', 'officesniper.tsave2'] }; // per map: [newest save, the one saved before it]
 const saveMapId = () => isOfficeMap(curMap) ? curMap : officeVar; // which map the Load buttons refer to (menu: the selected survival map)
 const SAVE_NAMES = { office: 'DSR 19th Floor', office2: 'NOVA Tower 7th Floor', tower: 'DSR Tower Front' };
 function readSave(slot, map) { map = map || saveMapId(); try { const j = JSON.parse(localStorage.getItem(SAVE_KEYS[map][slot === 2 ? 1 : 0]) || 'null'); return j && j.v === 1 && j.map === map && j.W && j.P && j.S ? j : null; } catch (err) { return null; } }
@@ -2325,7 +2351,7 @@ function saveGame() {
 function loadGame(slot) {
   const lm = saveMapId(), d = readSave(slot, lm); if (!d) { toast('Load', 'No saved game yet', 1800); return false; }
   initAudio();
-  if (curMap !== lm) { loadMap(lm); officeVar = lm; try { localStorage.setItem('layoutsniper.map2', lm); localStorage.setItem('layoutsniper.officeVar', lm); } catch (err) { /* ignore */ } markMap(); }
+  if (curMap !== lm) { loadMap(lm); officeVar = lm; try { localStorage.setItem('officesniper.map2', lm); localStorage.setItem('officesniper.officeVar', lm); } catch (err) { /* ignore */ } markMap(); }
   clearEnemies(); NADES.forEach((n) => scene.remove(n.m)); NADES.length = 0;
   const lim = (v, hi) => Math.max(0, Math.min(Number.isFinite(hi) ? hi : 1e9, (+v) | 0));
   WEAPONS.forEach((w, i) => { const q = d.wp && d.wp[i]; w.mag = q ? lim(q[0], w.magMax) : w.magMax; w.reserve = q ? lim(q[1], w.cap) : w.res0; });
@@ -2352,9 +2378,9 @@ $('loadBtn2').addEventListener('click', (e) => { e.preventDefault(); loadGame(2)
 refreshLoadBtn();
 /* ---- scores (this device only: nothing is ever sent anywhere) ---- */
 let scores = [], lastEntry = null, rankOpen = false, runSaved = false;
-try { scores = JSON.parse(localStorage.getItem('layoutsniper.scores')) || []; } catch (e) { scores = []; }
+try { scores = JSON.parse(localStorage.getItem('officesniper.scores')) || []; } catch (e) { scores = []; }
 if (!Array.isArray(scores)) scores = [];
-const saveScores = () => { try { localStorage.setItem('layoutsniper.scores', JSON.stringify(scores)); } catch (e) { /* ignore */ } };
+const saveScores = () => { try { localStorage.setItem('officesniper.scores', JSON.stringify(scores)); } catch (e) { /* ignore */ } };
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
 const p2 = (n) => String(n).padStart(2, '0');
 function fmtDate(ts) { const d = new Date(ts); return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds()); }
@@ -2366,7 +2392,7 @@ function saveRun() {
   const entry = { s: S.score, w: W.n, k: S.kills, m: curMap, t: Date.now(), u: newId() };
   scores.push(entry); scores.sort((a, b) => b.s - a.s); scores = scores.slice(0, 50); saveScores();
   lastEntry = entry;
-  let best = 0; try { best = Number(localStorage.getItem('layoutsniper.best')) || 0; if (S.score > best) localStorage.setItem('layoutsniper.best', String(S.score)); } catch (e) { /* ignore */ }
+  let best = 0; try { best = Number(localStorage.getItem('officesniper.best')) || 0; if (S.score > best) localStorage.setItem('officesniper.best', String(S.score)); } catch (e) { /* ignore */ }
 }
 function renderRank() {
   const ul = $('rList'); ul.innerHTML = '';
@@ -2383,7 +2409,7 @@ function renderRank() {
 function openRank() { rankOpen = true; $('rank').hidden = false; renderRank(); }
 function closeRank() { rankOpen = false; $('rank').hidden = true; }
 $('rankBtn').addEventListener('click', openRank); $('rankBtn2').addEventListener('click', openRank); $('rClose').addEventListener('click', closeRank);
-$('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('layoutsniper.best'); } catch (e) { /* ignore */ } renderRank(); } });
+$('rClear').addEventListener('click', () => { if (confirm('Delete all records saved on this device?')) { scores = []; lastEntry = null; saveScores(); try { localStorage.removeItem('officesniper.best'); } catch (e) { /* ignore */ } renderRank(); } });
 $('rLvClear').addEventListener('click', () => { if (confirm('Reset your level and XP back to LV 1?')) { try { localStorage.removeItem(LV_KEY); } catch (e) { /* ignore */ } LV.xp = 0; LV.lv = 1; P.hp = Math.min(P.hp, maxHp()); renderRank(); } });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && rankOpen) closeRank(); });
 /* ---- Villain List: a menu tile (next to the maps) that shows every zombie type ---- */
@@ -2426,18 +2452,27 @@ function zombieThumb(type) {
   } catch (err) { try { renderer.setRenderTarget(null); } catch (e2) { /* ignore */ } url = ''; }
   return (thumbCache[type] = url);
 }
+function startRename(span, t) { // tap a name in the list: it turns into a text box; Enter / tapping away saves, Esc cancels, an empty name restores the original
+  const inp = document.createElement('input'); inp.type = 'text'; inp.className = 'vin'; inp.maxLength = 14; inp.value = ZOMBIE_NAMES[t] || t; inp.autocomplete = 'off'; inp.spellcheck = false; inp.setAttribute('enterkeyhint', 'done');
+  let done = false;
+  const fin = (save) => { if (done) return; done = true; if (save) setZombieName(t, inp.value); span.textContent = ZOMBIE_NAMES[t] || t; inp.replaceWith(span); };
+  inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); fin(true); } else if (e.key === 'Escape') { e.preventDefault(); fin(false); } }); // keep typing (space, letters) away from the game's key handlers
+  inp.addEventListener('keyup', (e) => e.stopPropagation());
+  inp.addEventListener('blur', () => fin(true));
+  span.replaceWith(inp); inp.focus(); inp.select();
+}
 function renderVillains() {
   const ul = $('vList'); ul.innerHTML = ''; let n = 0;
   VILLAIN_ORDER.forEach((t) => {
     const c = TYPES[t]; if (!c) return; n++;
     const li = document.createElement('li'), src = zombieThumb(t);
     let pic; if (src) { pic = document.createElement('img'); pic.src = src; pic.alt = ''; } else { pic = document.createElement('span'); pic.className = 'vt'; }
-    const nm = document.createElement('span'); nm.className = 'vn'; nm.textContent = ZOMBIE_NAMES[t] || t;
+    const nm = document.createElement('span'); nm.className = 'vn vedit'; nm.textContent = ZOMBIE_NAMES[t] || t; nm.title = 'Tap to rename'; nm.addEventListener('click', () => startRename(nm, t));
     const st = document.createElement('span'); st.className = 'vs'; st.textContent = 'HP ' + c.hp + ' \u00b7 SPD ' + c.speed.toFixed(1) + ' \u00b7 ' + (c.explode ? 'BLAST ' + c.explode.dmg : 'DMG ' + c.dmg);
     const d = document.createElement('small'); d.textContent = VILLAIN_NOTES[t] || '';
     li.append(pic, nm, st, d); ul.appendChild(li);
   });
-  $('vHint').textContent = 'Scroll to see all ' + n + ' villains';
+  $('vHint').textContent = 'Scroll to see all ' + n + ' villains \u00b7 Tap a name to rename it';
   ul.scrollTop = 0;
 }
 function openVillains() { villainsOpen = true; $('villains').hidden = false; renderVillains(); }
@@ -2448,6 +2483,7 @@ function closeVillains() { villainsOpen = false; $('villains').hidden = true; }
   vb.addEventListener('click', openVillains); mapBox.insertBefore(vb, mapBox.querySelector('[data-id="sandbag"]')); // Villain List sits before Sandbag
 }
 $('vClose').addEventListener('click', closeVillains);
+$('vReset').addEventListener('click', () => { if (!Object.keys(customNames).length) return; if (confirm('Reset all villain names to the originals?')) { resetZombieNames(); renderVillains(); } });
 $('vList').addEventListener('touchmove', (e) => { e.stopPropagation(); }, { passive: true });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && villainsOpen) closeVillains(); });
 addEventListener('pagehide', () => { if (state === 'playing') saveRun(); });
@@ -2494,7 +2530,7 @@ function updatePlayer(dt) {
   const tvx = (fx * nf + rx * ns) * spd, tvz = (fz * nf + rz * ns) * spd, k = 1 - Math.exp(-(P.ground ? 12 : 2.5) * dt);
   P.vx += (tvx - P.vx) * k; P.vz += (tvz - P.vz) * k;
   if ((K(' ') || tch.jump) && P.ground) { P.vy = 6.4; P.ground = false; }
-  P.vy -= 18 * dt; P.y += P.vy * dt; { const fl = floorAt(P.x, P.z, P.y, 0.38); if (P.y <= fl) { P.y = fl; P.vy = 0; P.ground = true; } else P.ground = false; } // land on the floor or on top of a low obstacle; walking off an edge makes you fall
+  P.vy -= 18 * dt; P.y += P.vy * dt; { const mx = CEIL - 2.0; if (P.y > mx) { P.y = mx; if (P.vy > 0) P.vy = 0; } } { const fl = floorAt(P.x, P.z, P.y, 0.38); if (P.y <= fl) { P.y = fl; P.vy = 0; P.ground = true; } else P.ground = false; } // land on the floor or on top of a low obstacle; walking off an edge makes you fall
   P.x += P.vx * dt; P.z += P.vz * dt; pushOut(P, 0.4, P.y);
   if (curMap === 'sandbag') for (const z of TR.list) if (z) { const dx = P.x - z.x, dz = P.z - z.z, d = Math.hypot(dx, dz) || 1, r = 0.55 * z.sc + 0.4; if (d < r) { P.x = z.x + dx / d * r; P.z = z.z + dz / d * r; } }
   P.speed = Math.hypot(P.vx, P.vz); P.sprint = sprint;
@@ -2512,7 +2548,7 @@ function meleeStrike() {
     if (d > reach) continue;
     if (wallBetween(P.x, P.z, e.x, e.z)) continue; // a wall in between: the swing cannot reach
     if ((dx * fx + dz * fz) / d < 0.55 && d > 0.9) continue;
-    const pt = new THREE.Vector3(e.x - dx / d * 0.3, (e.kneel ? 0.8 : 1.1) * e.sc, e.z - dz / d * 0.3);
+    const pt = new THREE.Vector3(e.x - dx / d * 0.3, (e.kneel ? 0.8 : 1.1) * e.sc + (e.y || 0), e.z - dz / d * 0.3);
     damageEnemy(e, w.dmg, false, pt);
     if (!e.dead && !e.cfg.explode && !e.train) { e.x += dx / d * 0.9; e.z += dz / d * 0.9; e.stagger = 0.7; e.attackT = 0; e.attackCd = Math.max(e.attackCd, 0.6); }
     hits++; if (hits >= (w.punch ? 1 : 3)) break;
