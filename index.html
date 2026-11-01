@@ -1281,8 +1281,8 @@ vmFlash.visible = false; vmRoot.add(vmFlash);
 /* ---------------- weapons ---------------- */
 const WEAPONS = [
   { name: 'M4 RIFLE', mag: 60, magMax: 60, reserve: 240, res0: 240, cap: 480, dmg: 26, pellets: 1, rate: 0.085, spread: 0.011, ads: 0.0025, kick: 0.012, reload: 1.9, auto: true, snd: 'rifle', model: vmRifle, hip: [0.2, -0.2, -0.4], aim: [0, -0.104, -0.36] },
-  { name: 'PUMP SHOTGUN', mag: 6, magMax: 6, reserve: 24, res0: 24, cap: 60, dmg: 12, pellets: 9, rate: 0.85, spread: 0.055, ads: 0.04, kick: 0.05, reload: 2.4, auto: false, snd: 'shotgun', model: vmShot, hip: [0.2, -0.2, -0.38], aim: [0, -0.1, -0.34] },
-  { name: 'BOLT SNIPER', mag: 5, magMax: 5, reserve: 20, res0: 20, cap: 40, dmg: 140, pellets: 1, rate: 1.15, spread: 0.045, ads: 0.0004, kick: 0.07, reload: 2.8, auto: false, snd: 'sniper', model: vmSnipe, hip: [0.2, -0.2, -0.4], aim: [0, -0.088, -0.3], scope: true, zoom: 12, pierce: 1 },
+  { name: 'PUMP SHOTGUN', mag: 18, magMax: 18, reserve: 72, res0: 72, cap: 180, dmg: 12, pellets: 9, rate: 0.85, spread: 0.055, ads: 0.04, kick: 0.05, reload: 2.4, auto: false, snd: 'shotgun', model: vmShot, hip: [0.2, -0.2, -0.38], aim: [0, -0.1, -0.34] },
+  { name: 'BOLT SNIPER', mag: 15, magMax: 15, reserve: 60, res0: 60, cap: 120, dmg: 220, pellets: 1, rate: 1.15, spread: 0.045, ads: 0.0004, kick: 0.07, reload: 2.8, auto: false, snd: 'sniper', model: vmSnipe, hip: [0.2, -0.2, -0.4], aim: [0, -0.088, -0.3], scope: true, zoom: 12, pierce: 1 },
   { name: 'GRENADE', nade: true, mag: 3, magMax: 3, reserve: 0, res0: 0, cap: 0, dmg: 0, pellets: 0, rate: 1.0, spread: 0, ads: 0, kick: 0, reload: 0, auto: false, snd: 'melee', zoom: 76, model: vmNade, hip: [0.22, -0.24, -0.4], aim: [0.22, -0.24, -0.4] },
   { name: '북어', melee: true, fish: true, mag: 0, magMax: 0, reserve: 0, res0: 0, cap: 0, dmg: 85, reach: 2.5, rate: 0.5, pellets: 0, spread: 0, ads: 0, kick: 0, reload: 0, auto: true, snd: 'melee', zoom: 76, model: vmMach, hip: [0.22, -0.2, -0.38], aim: [0.22, -0.2, -0.38] },
   { name: 'FISTS', melee: true, punch: true, mag: 0, magMax: 0, reserve: 0, res0: 0, cap: 0, dmg: 20, reach: 1.9, rate: 0.38, pellets: 0, spread: 0, ads: 0, kick: 0, reload: 0, auto: true, snd: 'melee', zoom: 76, model: vmFists, hip: [0, -0.2, -0.42], aim: [0, -0.2, -0.42] }
@@ -1937,7 +1937,7 @@ function updatePickups(dt) {
     let take = false;
     if (dx * dx + dz * dz < 2.0) {
       if (p.type === 'hp' && P.hp < maxHp()) { P.hp = Math.min(maxHp(), P.hp + 30); take = true; feed('+30 HEALTH'); }
-      else if (p.type === 'ammo') { WEAPONS[0].reserve = Math.min(WEAPONS[0].cap, WEAPONS[0].reserve + 90); WEAPONS[1].reserve = Math.min(WEAPONS[1].cap, WEAPONS[1].reserve + 10); WEAPONS[2].reserve = Math.min(WEAPONS[2].cap, WEAPONS[2].reserve + 4); WEAPONS[3].mag = Math.min(6, WEAPONS[3].mag + 1); take = true; feed('+AMMO'); }
+      else if (p.type === 'ammo') { WEAPONS[0].reserve = Math.min(WEAPONS[0].cap, WEAPONS[0].reserve + 90); WEAPONS[1].reserve = Math.min(WEAPONS[1].cap, WEAPONS[1].reserve + 30); WEAPONS[2].reserve = Math.min(WEAPONS[2].cap, WEAPONS[2].reserve + 12); WEAPONS[3].mag = Math.min(6, WEAPONS[3].mag + 1); take = true; feed('+AMMO'); }
     }
     if (take) sndPickup();
     if (take || p.life <= 0) { scene.remove(p.g); pickups.splice(i, 1); }
@@ -1972,7 +1972,7 @@ function updateWaves(dt) {
     if (W.spawnT <= 0 && W.toSpawn > 0 && aliveCount() < maxAlive) { spawnOne(); W.toSpawn--; W.spawnT = Math.max(0.4, 1.7 - W.n * 0.09); }
     if (W.toSpawn === 0 && aliveCount() === 0) {
       W.state = 'break'; W.breakT = 7; const bonus = W.n * 200; S.score += bonus; P.hp = Math.min(maxHp(), P.hp + 25);
-      WEAPONS[0].reserve = Math.min(WEAPONS[0].cap, WEAPONS[0].reserve + 80); WEAPONS[1].reserve = Math.min(WEAPONS[1].cap, WEAPONS[1].reserve + 8); WEAPONS[2].reserve = Math.min(WEAPONS[2].cap, WEAPONS[2].reserve + 3); WEAPONS[3].mag = Math.min(6, WEAPONS[3].mag + 1);
+      WEAPONS[0].reserve = Math.min(WEAPONS[0].cap, WEAPONS[0].reserve + 80); WEAPONS[1].reserve = Math.min(WEAPONS[1].cap, WEAPONS[1].reserve + 24); WEAPONS[2].reserve = Math.min(WEAPONS[2].cap, WEAPONS[2].reserve + 9); WEAPONS[3].mag = Math.min(6, WEAPONS[3].mag + 1);
       toast('Wave ' + W.n + ' cleared', '+' + bonus + ' bonus  &middot;  +25 health  &middot;  resupplied', 3600);
     }
   } else if (W.state === 'break') { W.breakT -= dt; if (W.breakT <= 0) startWave(W.n + 1); }
