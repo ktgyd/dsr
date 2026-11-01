@@ -2160,7 +2160,7 @@ function selectMap(id, variant) {
   if (id === 'office' && !variant) { if (isOfficeMap(curMap)) { markMap(); return; } id = officeVar; } // first button: keep the survival map already chosen (the type row appears below), or return to the last one used
   if (isOfficeMap(id)) { officeVar = id; try { localStorage.setItem('layoutsniper.officeVar', id); } catch (e) { /* ignore */ } }
   if (id !== curMap) { loadMap(id); menuScene(); try { localStorage.setItem('layoutsniper.map2', id); } catch (e) { /* ignore */ } }
-  markMap();
+  markMap(); refreshLoadBtn();
 }
 function toMenu() {
   state = 'menu'; paused = false; mouseFire = false; mouseAds = false;
@@ -2170,18 +2170,20 @@ function toMenu() {
 }
 $('toMenu').addEventListener('click', toMenu);
 
-/* ---------------- save / load: a DSR 19th Floor run (wave, score, health, ammo, position, living zombies) ---------------- */
-const SAVE_KEY = 'layoutsniper.save1', SAVE_KEY2 = 'layoutsniper.save2'; // two slots: 1 = newest save, 2 = the one saved before it
-function readSave(slot) { try { const j = JSON.parse(localStorage.getItem(slot === 2 ? SAVE_KEY2 : SAVE_KEY) || 'null'); return j && j.v === 1 && j.map === 'office' && j.W && j.P && j.S ? j : null; } catch (err) { return null; } }
+/* ---------------- save / load: a survival run (wave, score, health, ammo, position, living zombies); each survival map has its own two slots ---------------- */
+const SAVE_KEYS = { office: ['layoutsniper.save1', 'layoutsniper.save2'], office2: ['layoutsniper.o2save1', 'layoutsniper.o2save2'] }; // per map: [newest save, the one saved before it]
+const saveMapId = () => isOfficeMap(curMap) ? curMap : officeVar; // which map the Load buttons refer to (menu: the selected survival map)
+const SAVE_NAMES = { office: 'DSR 19th Floor', office2: 'NOVA Tower 7th Floor' };
+function readSave(slot, map) { map = map || saveMapId(); try { const j = JSON.parse(localStorage.getItem(SAVE_KEYS[map][slot === 2 ? 1 : 0]) || 'null'); return j && j.v === 1 && j.map === map && j.W && j.P && j.S ? j : null; } catch (err) { return null; } }
 function refreshLoadBtn() {
-  const set = (id, d, label) => { const b = $(id); b.hidden = !d; if (d) { b.textContent = label + ' \u00b7 Wave ' + d.W.n; try { b.title = new Date(d.t).toLocaleString(); } catch (err) { /* ignore */ } } };
-  const d1 = readSave(1), d2 = readSave(2);
+  const set = (id, d, label) => { const b = $(id); b.hidden = !d; if (d) { b.textContent = label + tagm + ' \u00b7 Wave ' + d.W.n; try { b.title = new Date(d.t).toLocaleString(); } catch (err) { /* ignore */ } } };
+  const d1 = readSave(1), d2 = readSave(2), tagm = isOfficeMap(curMap) ? '' : (saveMapId() === 'office2' ? ' \u00b7 NOVA' : ' \u00b7 DSR');
   set('loadBtn', d1, 'Load'); set('loadBtn2', d2, 'Previous'); set('pLoad', d1, 'Load'); set('pLoad2', d2, 'Previous'); set('oLoad', d1, 'Load'); set('oLoad2', d2, 'Previous');
-  $('pSave').hidden = curMap !== 'office';
+  $('pSave').hidden = !isOfficeMap(curMap);
 }
 function saveGame() {
-  if (state !== 'playing' || curMap !== 'office' || P.dead) { toast('Save', 'Only during a DSR 19th Floor run', 1800); return false; }
-  const d = { v: 1, map: 'office', t: Date.now(), cur: cur,
+  if (state !== 'playing' || !isOfficeMap(curMap) || P.dead) { toast('Save', 'Only during a DSR 19th Floor or NOVA Tower run', 1800); return false; }
+  const KEY1 = SAVE_KEYS[curMap][0], KEY2 = SAVE_KEYS[curMap][1], d = { v: 1, map: curMap, t: Date.now(), cur: cur,
     W: { n: W.n, toSpawn: W.toSpawn, state: W.state, breakT: W.breakT, spawnT: W.spawnT, queue: (W.queue || []).slice() },
     S: { score: S.score, kills: S.kills, heads: S.heads, shots: S.shots, hits: S.hits },
     P: { x: P.x, z: P.z, yaw: P.yaw, pitch: P.pitch, hp: P.hp },
@@ -2190,20 +2192,20 @@ function saveGame() {
   try {
     // saving pushes the newest save to the "Previous" slot, so an older save is never overwritten by accident;
     // a save at the very same progress (e.g. a double tap) just replaces the newest one instead of pushing it out
-    const raw = localStorage.getItem(SAVE_KEY), old = readSave(1);
+    const raw = localStorage.getItem(KEY1), old = readSave(1, curMap);
     // ...unless the existing "Previous" save is a better record (higher score or more kills than both the new save and the newest one): then it is kept and only the newest slot is overwritten
-    const prev = readSave(2), keepPrev = !!prev && !!old && ((prev.S.score > d.S.score && prev.S.score > old.S.score) || (prev.S.kills > d.S.kills && prev.S.kills > old.S.kills));
-    if (raw && old && !keepPrev && !(old.W.n === d.W.n && old.S.score === d.S.score && old.S.kills === d.S.kills)) localStorage.setItem(SAVE_KEY2, raw);
-    localStorage.setItem(SAVE_KEY, JSON.stringify(d));
+    const prev = readSave(2, curMap), keepPrev = !!prev && !!old && ((prev.S.score > d.S.score && prev.S.score > old.S.score) || (prev.S.kills > d.S.kills && prev.S.kills > old.S.kills));
+    if (raw && old && !keepPrev && !(old.W.n === d.W.n && old.S.score === d.S.score && old.S.kills === d.S.kills)) localStorage.setItem(KEY2, raw);
+    localStorage.setItem(KEY1, JSON.stringify(d));
   } catch (err) { toast('Save failed', 'Storage is not available here', 2400); return false; }
-  refreshLoadBtn(); toast('Game saved', 'Wave ' + W.n + ' &middot; score ' + S.score, 1800);
+  refreshLoadBtn(); toast('Game saved', SAVE_NAMES[curMap] + ' &middot; wave ' + W.n + ' &middot; score ' + S.score, 1800);
   const vb = $('vbtn'); vb.classList.add('flash'); setTimeout(() => vb.classList.remove('flash'), 600);
   return true;
 }
 function loadGame(slot) {
-  const d = readSave(slot); if (!d) { toast('Load', 'No saved game yet', 1800); return false; }
+  const lm = saveMapId(), d = readSave(slot, lm); if (!d) { toast('Load', 'No saved game yet', 1800); return false; }
   initAudio();
-  if (curMap !== 'office') { loadMap('office'); try { localStorage.setItem('layoutsniper.map2', 'office'); } catch (err) { /* ignore */ } markMap(); }
+  if (curMap !== lm) { loadMap(lm); officeVar = lm; try { localStorage.setItem('layoutsniper.map2', lm); localStorage.setItem('layoutsniper.officeVar', lm); } catch (err) { /* ignore */ } markMap(); }
   clearEnemies(); NADES.forEach((n) => scene.remove(n.m)); NADES.length = 0;
   const lim = (v, hi) => Math.max(0, Math.min(Number.isFinite(hi) ? hi : 1e9, (+v) | 0));
   WEAPONS.forEach((w, i) => { const q = d.wp && d.wp[i]; w.mag = q ? lim(q[0], w.magMax) : w.magMax; w.reserve = q ? lim(q[1], w.cap) : w.res0; });
@@ -2216,7 +2218,7 @@ function loadGame(slot) {
   (d.en || []).forEach((q) => { if (!TYPES[q[0]]) return; const e = makeZombie(q[0], +q[1], +q[2], false); e.hp = Math.max(1, +q[3] || 1); pushOut(e, 0.5 * e.sc); });
   if (!noLock) requestLock(); showHint();
   $('vbtn').hidden = false; refreshLoadBtn();
-  toast('Game loaded', 'Wave ' + W.n + ' &middot; ' + (d.en ? d.en.length : 0) + ' zombies on the floor', 2400);
+  toast('Game loaded', SAVE_NAMES[lm] + ' &middot; wave ' + W.n + ' &middot; ' + (d.en ? d.en.length : 0) + ' zombies on the floor', 2400);
   return true;
 }
 $('vbtn').addEventListener('click', (e) => { e.preventDefault(); saveGame(); $('vbtn').blur(); });
@@ -2351,7 +2353,7 @@ $('sbtn').addEventListener('click', (e) => { e.preventDefault(); setMuted(!muted
 $('sbtn').innerHTML = ICON_OFF;
 function syncPauseBtn() {
   const show = state === 'playing', on = paused;
-  if (show !== pbShown) { pbShown = show; $('pbtn').hidden = !show; $('sbtn').hidden = !show; $('vbtn').hidden = !(show && curMap === 'office'); }
+  if (show !== pbShown) { pbShown = show; $('pbtn').hidden = !show; $('sbtn').hidden = !show; $('vbtn').hidden = !(show && isOfficeMap(curMap)); }
   if (on !== pbOn) { pbOn = on; if (on) refreshLoadBtn(); $('pbtn').classList.toggle('on', on); $('pbtn').setAttribute('aria-label', on ? 'Resume' : 'Pause'); }
 }
 $('again').addEventListener('click', startGame);
