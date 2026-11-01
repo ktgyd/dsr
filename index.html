@@ -314,8 +314,6 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 <div id="err" hidden>이 브라우저에서는 WebGL을 시작할 수 없습니다. 최신 Chrome, Edge, Safari 또는 Firefox에서 열어 주세요.</div>
 
 <script>
-/* one-time carry-over: data saved under the old game name (layoutsniper.*) is copied to the new name (officesniper.*); from then on everything is read and written under the new name. The old copies are left untouched as a backup. */
-try { const olds = []; for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('layoutsniper.') === 0) olds.push(k); } olds.forEach((k) => { const nk = 'officesniper.' + k.slice(13); if (localStorage.getItem(nk) === null) localStorage.setItem(nk, localStorage.getItem(k)); }); } catch (e) { /* storage unavailable */ }
 
 /* Keep Safari from zooming: pinch, double-tap, trackpad pinch and ctrl+wheel. */
 (function () {
@@ -342,7 +340,7 @@ const $ = (id) => document.getElementById(id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const rand = (a, b) => a + Math.random() * (b - a);
-let HALF = 40, CEIL = 1e9; // CEIL = ceiling height of the current map (1e9 = open sky): the head is stopped below it
+let HALF = 40, STAIRP = null, CEIL = 1e9; // CEIL = ceiling height of the current map (1e9 = open sky): the head is stopped below it
 const touchMode = !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
 if (touchMode) document.body.classList.add('touchmode');
 
@@ -992,6 +990,7 @@ function buildTower() {
   [[-79.1, 0.3, 0x8a6238], [-81.3, 0.15, 0x7d5a34]].forEach((q) => { bx(q[0], q[1] / 2, -10.5, 2.2, q[1], 4.6, q[2]); addCol(q[0], -10.5, 2.2, 4.6, q[1], true); }); // flight 2: two more risers heading west
   bx(-87.45, 0.08, -10.5, 10.1, 0.16, 4.6, 0x8a6238); addCol(-87.45, -10.5, 10.1, 4.6, 0.16, true); // wooden walkway west across the plaza (x -92.5..-82.4)
   bx(-90.5, 0.08, -6.0, 4, 0.16, 4.8, 0x8a6238); addCol(-90.5, -6.0, 4, 4.8, 0.16, true); for (let x = -92.2; x < -82.4; x += 1.5) bx(x, 0.165, -10.5, 0.05, 0.01, 4.6, 0x5a3b22); // ...then south along the crosswalk (x -92.5..-88.5) to the road; the sidewalk itself stays clear
+  STAIRP = stairRoute([[-90, -10.5], [-75, -10.5], [-75, -27]]); // route zombies follow: walkway entrance -> bend on the platform -> up flight 1 -> landing
   // --- west end: an elevated road (viaduct) crossing over the street at the far left, with the crosswalk beneath it ---
   bx(-94, 7.5, -2, 12, 2.0, 76, 0x9a9da1); bx(-99.75, 8.8, -2, 0.5, 0.6, 76, 0x8c8f93); bx(-88.25, 8.8, -2, 0.5, 0.6, 76, 0x8c8f93); bx(-94, 6.45, -2, 12, 0.1, 76, 0x6f7276);
   [-22, -8, 10, 31].forEach((z) => { bx(-94, 3.25, z, 1.6, 6.5, 1.6, 0xaeb2b6); addCol(-94, z, 1.8, 1.8, 6.5); }); // pillars
@@ -1100,7 +1099,7 @@ function loadMap(id) {
   moon.color.setHex(M.sun[0]); moon.intensity = M.sun[1]; renderer.toneMappingExposure = M.exp;
   ground.material.map = M.ground[0]; ground.material.color.setHex(M.ground[1]); ground.material.needsUpdate = true;
   { const sc = moon.shadow.camera, r = M.shadowR || 62; sc.left = -r; sc.right = r; sc.top = r; sc.bottom = -r; sc.updateProjectionMatrix(); } // wider sun-shadow area for the big outdoor map (other maps keep 62)
-  CEIL = 1e9; M.build();
+  CEIL = 1e9; STAIRP = null; M.build();
   navBuild();
   document.body.classList.toggle('training', isTrain()); document.body.classList.toggle('lockmove', curMap === 'training'); $('s6').hidden = curMap !== 'sandbag';
   rebuildEnv();
@@ -1665,9 +1664,9 @@ function toast(title, sub, ms) {
 function feed(t) { const f = $('feed'); f.textContent = t; clearTimeout(feed.t); feed.t = setTimeout(() => { f.textContent = ''; }, 900); }
 
 /* ---------------- collisions ---------------- */
-function pushOut(o, r, y) {
+function pushOut(o, r, y, zomb) {
   for (let k = 0; k < COL.length; k++) {
-    const c = COL[k]; if (c.st && y == null) continue; if (y != null && c.h <= CLIMB_MAX && y >= c.h - MANTLE) continue; // feet within a mantle step of the top of a low obstacle (rail, sofa, desk, meeting table, bar table, cubicle divider): climb onto it and walk over/along it
+    const c = COL[k]; if (zomb) { if (c.st && y >= c.h - 0.2) continue; } else { if (c.st && y == null) continue; if (y != null && c.h <= CLIMB_MAX && y >= c.h - MANTLE) continue; } // zombies: a stair tread is a wall unless they already stand within 0.2 m of its top, so they can only climb from the entrance; the player keeps the jump / mantle rules // feet within a mantle step of the top of a low obstacle (rail, sofa, desk, meeting table, bar table, cubicle divider): climb onto it and walk over/along it
     const cx = clamp(o.x, c.x0, c.x1), cz = clamp(o.z, c.z0, c.z1), dx = o.x - cx, dz = o.z - cz, d2 = dx * dx + dz * dz;
     if (d2 >= r * r) continue;
     if (d2 > 1e-8) { const d = Math.sqrt(d2); o.x += dx / d * (r - d); o.z += dz / d * (r - d); }
@@ -1684,6 +1683,21 @@ function stairAt(x, z) { // height of the highest stair tread / landing (st coll
   let f = 0;
   for (let k = 0; k < COL.length; k++) { const c = COL[k]; if (!c.st || c.h <= f) continue; if (x > c.x0 && x < c.x1 && z > c.z0 && z < c.z1) f = c.h; }
   return f;
+}
+// (STAIRP is declared next to CEIL at the top) the wooden stairs' route {p: waypoints from the entrance up to the landing, s: distance at each waypoint, L: total}; set by buildTower
+function stairRoute(p) { const s = [0]; for (let i = 1; i < p.length; i++) s.push(s[i - 1] + Math.hypot(p[i][0] - p[i - 1][0], p[i][1] - p[i - 1][1])); return { p: p, s: s, L: s[s.length - 1] }; }
+function stairProj(x, z) { // distance along the route of the route point nearest to (x, z)
+  let best = 1e9, bs = 0;
+  for (let i = 0; i < STAIRP.p.length - 1; i++) {
+    const a = STAIRP.p[i], b = STAIRP.p[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], l2 = dx * dx + dz * dz, t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / l2, 0, 1), qx = a[0] + dx * t, qz = a[1] + dz * t, d = (x - qx) * (x - qx) + (z - qz) * (z - qz);
+    if (d < best) { best = d; bs = STAIRP.s[i] + Math.sqrt(l2) * t; }
+  }
+  return bs;
+}
+function stairPt(d) { // point at distance d along the route
+  d = clamp(d, 0, STAIRP.L);
+  for (let i = 0; i < STAIRP.p.length - 1; i++) if (d <= STAIRP.s[i + 1] || i === STAIRP.p.length - 2) { const a = STAIRP.p[i], b = STAIRP.p[i + 1], t = (d - STAIRP.s[i]) / ((STAIRP.s[i + 1] - STAIRP.s[i]) || 1); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; }
+  return STAIRP.p[0];
 }
 function blockedAt(x, z, r) {
   for (let k = 0; k < COL.length; k++) { const c = COL[k], cx = clamp(x, c.x0, c.x1), cz = clamp(z, c.z0, c.z1), dx = x - cx, dz = z - cz; if (dx * dx + dz * dz < r * r) return true; }
@@ -1707,12 +1721,12 @@ function wallBetween(x0, z0, x1, z1) {
 
 /* navigation: a grid (0.5 m cells, obstacles grown by the zombie radius) + a flow field flooded outward from the player,
    so zombies path around wall corners / doors instead of pushing into them */
-const NAV = { cs: 0.5, n: 0, ox: 0, oz: 0, blk: null, dist: null, q: null, ready: false, t: 0, pi: -1, pj: -1, r: 0.5 };
+const NAV = { alt: null, cs: 0.5, n: 0, ox: 0, oz: 0, blk: null, dist: null, q: null, ready: false, t: 0, pi: -1, pj: -1, r: 0.5 };
 function navBuild() {
   const cs = NAV.cs, ext = HALF + 2, n = Math.ceil(ext * 2 / cs); NAV.n = n; NAV.ox = -ext; NAV.oz = -ext;
   NAV.blk = new Uint8Array(n * n); NAV.dist = new Int32Array(n * n); NAV.q = new Int32Array(n * n); NAV.pi = NAV.pj = -1; NAV.t = 0;
   for (let k = 0; k < COL.length; k++) {
-    const c = COL[k]; if (c.st) continue;
+    const c = COL[k]; if (c.st && c.h <= 0.2) continue; // low walkway / first riser stay open; taller treads are walls for zombies
     const i0 = Math.max(0, Math.ceil((c.x0 - NAV.r - NAV.ox) / cs - 0.5)), i1 = Math.min(n - 1, Math.floor((c.x1 + NAV.r - NAV.ox) / cs - 0.5));
     const j0 = Math.max(0, Math.ceil((c.z0 - NAV.r - NAV.oz) / cs - 0.5)), j1 = Math.min(n - 1, Math.floor((c.z1 + NAV.r - NAV.oz) / cs - 0.5));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) NAV.blk[j * n + i] = 1;
@@ -1722,7 +1736,8 @@ function navBuild() {
 function navRefresh(dt, force) {
   if (!NAV.ready) return;
   NAV.t -= dt; const n = NAV.n, cs = NAV.cs;
-  let pi = Math.floor((P.x - NAV.ox) / cs), pj = Math.floor((P.z - NAV.oz) / cs);
+  const ntx = NAV.alt ? NAV.alt[0] : P.x, ntz = NAV.alt ? NAV.alt[1] : P.z; // NAV.alt: while the player is up on the wooden stairs, zombies on the ground head for the stairs' entrance
+  let pi = Math.floor((ntx - NAV.ox) / cs), pj = Math.floor((ntz - NAV.oz) / cs);
   if (!force && NAV.t > 0 && pi === NAV.pi && pj === NAV.pj) return;
   if (!force && NAV.t > 0) return;
   NAV.t = 0.2; NAV.pi = pi; NAV.pj = pj;
@@ -2077,6 +2092,8 @@ function animZ(e, t, moving, atk) {
 }
 function updateEnemies(dt, t) {
   pustMat.emissiveIntensity = 1 + 0.5 * Math.sin(t * 4);
+  const stairMode = !!STAIRP && !P.dead && P.y > 0.25 && stairAt(P.x, P.z) >= 0.3; // the player is up on a wooden tread / platform / landing
+  NAV.alt = stairMode ? [STAIRP.p[0][0] + 2.5, STAIRP.p[0][1]] : null;
   navRefresh(dt);
   for (let i = enemies.length - 1; i >= 0; i--) {
     const e = enemies[i], cfg = e.cfg;
@@ -2117,7 +2134,9 @@ function updateEnemies(dt, t) {
       if (back) { dxn = -ax; dzn = -az; }
       else {
         let nv = false;
-        if (NAV.ready && (e.navT > 0 || wb || !navLine(e.x, e.z, P.x, P.z))) { const nd = navDir(e); if (nd) { dxn = nd[0]; dzn = nd[1]; nv = true; } }
+        const onSt = !!STAIRP && stairAt(e.x, e.z) > 0 && (stairMode || (e.y || 0) > 0.25); // standing on the stairs: walk the route up toward the player (or back down when the player is not on the stairs)
+        if (onSt) { const sz = stairProj(e.x, e.z), sp = stairMode ? stairProj(P.x, P.z) : -9, dir = sp > sz ? 1 : -1; let qx, qz; if (stairMode && Math.abs(sp - sz) < 1.2) { qx = P.x; qz = P.z; } else { const q = stairPt(sz + dir * 1.2); qx = q[0]; qz = q[1]; } const ddx = qx - e.x, ddz = qz - e.z, dd = Math.hypot(ddx, ddz) || 1; dxn = ddx / dd; dzn = ddz / dd; nv = true; }
+        else if (NAV.ready && (e.navT > 0 || wb || stairMode || !navLine(e.x, e.z, P.x, P.z))) { const nd = navDir(e); if (nd) { dxn = nd[0]; dzn = nd[1]; nv = true; } }
         if (!nv) {
         const look = 2.4;
         if (blockedAt(e.x + ax * look, e.z + az * look, 0.55)) {
@@ -2134,7 +2153,7 @@ function updateEnemies(dt, t) {
       e.phase += sp * dt * 2.2 / e.sc; ax = dxn; az = dzn;
     }
     for (let j = i - 1; j >= 0; j--) { const o = enemies[j]; if (o.dead || o.idle) continue; const sx = e.x - o.x, sz = e.z - o.z, d2 = sx * sx + sz * sz, mr = 0.45 * (e.sc + o.sc); if (d2 < mr * mr && d2 > 1e-6) { const d = Math.sqrt(d2), p = (mr - d) * 0.5; e.x += sx / d * p; e.z += sz / d * p; o.x -= sx / d * p; o.z -= sz / d * p; } }
-    const o2 = { x: e.x, z: e.z }; pushOut(o2, 0.42 * e.sc); e.x = o2.x; e.z = o2.z;
+    const o2 = { x: e.x, z: e.z }; pushOut(o2, 0.42 * e.sc, e.y || 0, true); e.x = o2.x; e.z = o2.z;
     const pdx = e.x - P.x, pdz = e.z - P.z, pd = Math.hypot(pdx, pdz), pr2 = 0.4 + 0.38 * e.sc;
     if (pd < pr2 && pd > 1e-6) { e.x = P.x + pdx / pd * pr2; e.z = P.z + pdz / pd * pr2; }
     const target = (moving && !back && e.attackT <= 0) ? Math.atan2(ax, az) : Math.atan2(dx, dz);
