@@ -932,9 +932,9 @@ function buildTower() {
   [8.7, 9.1, 10.9, 11.3].forEach((z) => bx(0, 0.027, z, XS * 2, 0.02, 0.1, 0xe6b800)); // double yellow lines each side of the median rail
   [-34, 34].forEach((cx, k) => { for (let z = 0.6; z <= 19.5; z += 1.1) { if (z > 8.3 && z < 11.7) continue; bx(cx, 0.03, z, 4, 0.02, k ? 0.55 : 0.5, k && Math.round(z / 1.1) % 2 ? 0xe6b800 : 0xf2f2f2); } }); // crosswalks (the east one is the yellow/white raised hump)
   bx(34, 0.1, 5, 5.2, 0.12, 8.2, 0x6a6c70); bx(34, 0.1, 15, 5.2, 0.12, 8.2, 0x6a6c70);
-  // --- the glass towers: three staggered blocks (tallest east) + glass podium with the lobby ---
-  glassBox(2, 26, -40, -22, 72); glassBox(-12, 2, -40, -24, 54); glassBox(-26, -12, -40, -26, 36);
-  glassBox(-14, 14, -22, -14, 8);
+  // --- the glass towers: three identical blocks in a row with small gaps + a shared glass podium with the lobby ---
+  glassBox(-25, -11, -40, -24, 72); glassBox(-7, 7, -40, -24, 72); glassBox(11, 25, -40, -24, 72); // three identical towers in a row with 4 m gaps
+  glassBox(-25, 25, -24, -14, 8); // shared glass podium
   bx(0, 2.1, -13.9, 9, 4.2, 0.1, 0x14181c); [-1.1, 1.1].forEach((x) => bx(x, 1.4, -13.84, 2.0, 2.8, 0.06, 0x7f9db3)); bx(0, 3.6, -13.8, 10, 0.3, 3.4, 0xc9ccd0); // lobby doors + canopy
   const ts = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.2), new THREE.MeshBasicMaterial({ map: signTex('DSR TOWER', 'MAIN ENTRANCE') })); ts.position.set(0, 5.6, -13.85); world.add(ts);
   // --- plaza: pines, hedges, flagpoles, guard post, bike rack ---
@@ -943,7 +943,7 @@ function buildTower() {
   [[-23, -4.4, -6.7], [4.4, 23, -6.7], [-23, -4.4, -13.4], [4.4, 23, -13.4]].forEach((h) => { bx((h[0] + h[1]) / 2, 0.45, h[2], h[1] - h[0], 0.9, 0.8, 0x3a6a3f); addCol((h[0] + h[1]) / 2, h[2], h[1] - h[0], 0.8, 0.9); }); // clipped hedges
   [[9.5, 0xffffff], [12, 0x1f4e9c], [14.5, 0xffffff]].forEach((f) => { bx(f[0], 4.6, -8.5, 0.14, 9.2, 0.14, 0xd0d3d8); bx(f[0] + 0.7, 8.3, -8.5, 1.3, 0.8, 0.04, f[1]); addCol(f[0], -8.5, 0.3, 0.3, 9); });
   bx(-27, 1.2, -10, 2.6, 2.4, 2.2, 0xc9ccd0); bx(-27, 2.5, -10, 3.0, 0.2, 2.6, 0x7d8287); bx(-27, 1.4, -8.87, 1.6, 0.9, 0.05, 0x7f9db3); addCol(-27, -10, 2.8, 2.4, 2.5); // guard post
-  [29.5, 30.5, 31.5, 32.5].forEach((x) => bx(x, 0.4, -9.5, 0.06, 0.8, 0.5, 0x555b61)); bx(31, 0.2, -9.5, 3.2, 0.06, 0.06, 0x555b61); addCol(31, -9.5, 3.4, 0.6, 0.8);
+  [24.9, 25.7, 26.5, 27.3].forEach((x) => bx(x, 0.4, -9.5, 0.06, 0.8, 0.5, 0x555b61)); bx(26.1, 0.2, -9.5, 3.2, 0.06, 0.06, 0x555b61); addCol(26.1, -9.5, 3.4, 0.6, 0.8);
   // --- guard rails: yellow/black bars (sidewalk + median) with gaps at the crosswalks and the lobby path, orange bollards along the median ---
   const rail = (x0, x1, z) => { const n = Math.max(1, Math.round((x1 - x0) / 2)); for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n; bx(x, 0.5, z, 0.12, 1.0, 0.12, 0x22262b); bx(x, 0.88, z, 0.14, 0.14, 0.14, 0xe6b800); } bx((x0 + x1) / 2, 0.58, z, x1 - x0, 0.07, 0.07, 0x3b4048); bx((x0 + x1) / 2, 0.88, z, x1 - x0, 0.07, 0.07, 0x3b4048); addCol((x0 + x1) / 2, z, x1 - x0, 0.3, 1.0); };
   [[-55.6, -36.5], [-31.5, -5], [5, 31.5], [36.5, 55.6]].forEach((r) => rail(r[0], r[1], -3.2)); // sidewalk rail
@@ -1040,7 +1040,7 @@ const MAPS_ALL = {
     sky: { hor: [0.66, 0.7, 0.79], top: [0.42, 0.5, 0.68], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.4, 0.85, 0.3], fog: 0.0065,
     hemi: [0xe6eeff, 0x80858c, 1.05], sun: [0xf2f4ff, 0.75], exp: 1.0,
     mini: [[-56, 56, -3, 20.5, 'rgba(80,82,88,.55)'], [-56, 56, -6, -3, 'rgba(190,192,196,.35)'], [-56, 56, 20.5, 24, 'rgba(190,192,196,.3)'], [-24, 24, -14, -6, 'rgba(95,138,69,.35)'], [-56, 56, 26, 36, 'rgba(95,138,69,.3)'],
-      [2, 26, -40, -22, 'rgba(120,150,185,.6)'], [-12, 2, -40, -24, 'rgba(120,150,185,.5)'], [-26, -12, -40, -26, 'rgba(120,150,185,.4)'], [-14, 14, -22, -14, 'rgba(120,150,185,.45)'], [28, 56, -40, -8, 'rgba(170,172,172,.55)'], [-56, -32, -38, -14, 'rgba(165,169,173,.5)'], [-52, -40, -2, 22, 'rgba(150,150,155,.35)']] } // third map: the street in front of the DSR tower (map type under the DSR button)
+      [-25, -11, -40, -24, 'rgba(120,150,185,.55)'], [-7, 7, -40, -24, 'rgba(120,150,185,.55)'], [11, 25, -40, -24, 'rgba(120,150,185,.55)'], [-25, 25, -24, -14, 'rgba(120,150,185,.4)'], [28, 56, -40, -8, 'rgba(170,172,172,.55)'], [-56, -32, -38, -14, 'rgba(165,169,173,.5)'], [-52, -40, -2, 22, 'rgba(150,150,155,.35)']] } // third map: the street in front of the DSR tower (map type under the DSR button)
 };
 const MAPS = { office: MAPS_ALL.office, training: MAPS_ALL.training, sandbag: MAPS_ALL.sandbag }; // order = order of the menu buttons; first = default
 let curMap = 'office';
