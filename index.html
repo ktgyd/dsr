@@ -180,7 +180,8 @@ body:has(#menu:not([hidden])) #touch { display: none !important; } /* on-screen 
 }
 
 .maps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-#sbOpts { margin-top: 8px; }
+#sbOpts { margin-top: 8px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+#menu #sbOpts .mapb { padding: 7px 8px; } #menu #sbOpts .mapb b { font-size: 12px; line-height: 1.15; } #menu #sbOpts .mapb small { font-size: 8.5px; line-height: 1.2; }
 .mapb { cursor: pointer; text-align: left; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--ink); padding: 9px 12px; font-family: inherit; display: flex; flex-direction: column; gap: 2px; }
 .mapb b { font-family: var(--f-display); font-weight: 800; letter-spacing: .08em; text-transform: uppercase; font-size: 18px; line-height: 1.1; }
 .mapb small { font-size: 11px; color: var(--muted); letter-spacing: .06em; }
@@ -899,6 +900,96 @@ function buildOffice2() {
   [[0, -30], [0, -14], [0, 2], [0, 18], [0, 30], [-21, -6], [21, 8]].forEach((p) => { const l = new THREE.PointLight(0xfff0dd, 1.1, 32, 2); l.position.set(p[0], 3.1, p[1]); world.add(l); });
 }
 
+/* ---- map: DSR Tower Front (third survival map): the street in front of the glass DSR tower, built from street-view photos: three staggered glass towers with dark mechanical bands, a plaza with pines and flagpoles, guard-rail sidewalks, a blue bus lane, a yellow-black median rail with orange bollards, cherry trees, a gray open-deck parking garage on the east side, and an overpass with the blue direction sign on the west side ---- */
+function mkGlassTex() { // curtain-wall tile = 18 m wide x 36 m tall: blue-grey glass panels, thin mullions, dark mechanical band at the top
+  const c = document.createElement('canvas'); c.width = 256; c.height = 512; const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, '#9db3c6'); g.addColorStop(1, '#7b94aa'); x.fillStyle = g; x.fillRect(0, 0, 256, 512);
+  for (let r = 0; r < 10; r++) for (let q = 0; q < 12; q++) { x.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.08)' : 'rgba(0,20,40,0.10)'; x.fillRect(q * 21.33, 102 + r * 41, 21.33, 41); }
+  x.strokeStyle = 'rgba(30,45,60,0.5)'; x.lineWidth = 1.5; for (let q = 0; q <= 12; q++) { x.beginPath(); x.moveTo(q * 21.33, 102); x.lineTo(q * 21.33, 512); x.stroke(); } for (let r = 0; r <= 10; r++) { x.beginPath(); x.moveTo(0, 102 + r * 41); x.lineTo(256, 102 + r * 41); x.stroke(); }
+  x.fillStyle = '#262b32'; x.fillRect(0, 0, 256, 102); x.strokeStyle = 'rgba(120,135,150,0.35)'; for (let q = 0; q <= 24; q++) { x.beginPath(); x.moveTo(q * 10.67, 0); x.lineTo(q * 10.67, 102); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = maxAniso; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+function mkGarageTex() { // one open parking deck: light slab on top, dark open bay below with pillars (tile = 8 m x 3.2 m)
+  const c = document.createElement('canvas'); c.width = 256; c.height = 128; const x = c.getContext('2d');
+  x.fillStyle = '#bfc1c0'; x.fillRect(0, 0, 256, 128); const g = x.createLinearGradient(0, 30, 0, 128); g.addColorStop(0, '#3b3e41'); g.addColorStop(1, '#1d1f21'); x.fillStyle = g; x.fillRect(0, 30, 256, 98);
+  x.fillStyle = '#a9acab'; x.fillRect(0, 30, 6, 98); x.fillRect(122, 30, 12, 98); x.fillRect(250, 30, 6, 98); x.fillStyle = '#9ea1a0'; x.fillRect(0, 26, 256, 5); x.fillStyle = 'rgba(70,74,78,0.7)'; x.fillRect(0, 96, 256, 4);
+  const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = maxAniso; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
+}
+function buildTower() {
+  const XS = 56, ZN = -40, ZS = 36; // playable street block: x -56..56, z -40..36
+  const B = new Batch(); const bx = (x, y, z, w, h, d, c) => B.add(x, y, z, w, h, d, c);
+  const concrete = stdMat({ color: 0xaeb2b6, roughness: 0.9, envMapIntensity: 0.3 }), hoard = stdMat({ color: 0xd3dae1, roughness: 0.8 });
+  const glassTex = mkGlassTex(), garageTex = mkGarageTex();
+  const glassBox = (x0, x1, z0, z1, h) => { const t = glassTex.clone(); t.needsUpdate = true; t.repeat.set(Math.max(x1 - x0, z1 - z0) / 18, h / 36); const m = mk(new THREE.BoxGeometry(x1 - x0, h, z1 - z0), stdMat({ map: t, roughness: 0.25, metalness: 0.35, envMapIntensity: 0.8 }), (x0 + x1) / 2, h / 2, (z0 + z1) / 2, 0, true); addCol((x0 + x1) / 2, (z0 + z1) / 2, x1 - x0, z1 - z0, h); return m; };
+  // --- ground: road, curbs, sidewalks, plaza, lawns, park strip ---
+  bx(0, 0.02, 8.5, XS * 2, 0.04, 23.5, 0x4a4c50); // asphalt z -3..20
+  bx(0, 0.03, -1.5, XS * 2, 0.05, 3, 0x4c8fcf); bx(0, 0.03, 18.5, XS * 2, 0.05, 3, 0x4c8fcf); // blue bus / curb lanes
+  bx(0, 0.06, -4.5, XS * 2, 0.12, 3, 0xb9bcc0); bx(0, 0.06, 22.2, XS * 2, 0.12, 3.6, 0xb9bcc0); // sidewalks
+  bx(0, 0.05, -10, XS * 2, 0.1, 8, 0xc9cacb); // plaza z -14..-6
+  [[-24, -4], [4, 24]].forEach((l) => bx((l[0] + l[1]) / 2, 0.1, -10, l[1] - l[0], 0.14, 7, 0x5f8a45)); // lawns beside the central walkway
+  bx(0, 0.1, 31, XS * 2, 0.1, 10, 0x5f8a45); // south park strip z 26..36
+  for (let x = -54; x < 55; x += 6) { bx(x, 0.026, 3.2, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 6.3, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 12.8, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 15.8, 3, 0.02, 0.16, 0xf0f0f0); } // dashed lane lines
+  [8.7, 9.1, 10.9, 11.3].forEach((z) => bx(0, 0.027, z, XS * 2, 0.02, 0.1, 0xe6b800)); // double yellow lines each side of the median rail
+  [-34, 34].forEach((cx, k) => { for (let z = 0.6; z <= 19.5; z += 1.1) { if (z > 8.3 && z < 11.7) continue; bx(cx, 0.03, z, 4, 0.02, k ? 0.55 : 0.5, k && Math.round(z / 1.1) % 2 ? 0xe6b800 : 0xf2f2f2); } }); // crosswalks (the east one is the yellow/white raised hump)
+  bx(34, 0.1, 5, 5.2, 0.12, 8.2, 0x6a6c70); bx(34, 0.1, 15, 5.2, 0.12, 8.2, 0x6a6c70);
+  // --- the glass towers: three staggered blocks (tallest east) + glass podium with the lobby ---
+  glassBox(2, 26, -40, -22, 72); glassBox(-12, 2, -40, -24, 54); glassBox(-26, -12, -40, -26, 36);
+  glassBox(-14, 14, -22, -14, 8);
+  bx(0, 2.1, -13.9, 9, 4.2, 0.1, 0x14181c); [-1.1, 1.1].forEach((x) => bx(x, 1.4, -13.84, 2.0, 2.8, 0.06, 0x7f9db3)); bx(0, 3.6, -13.8, 10, 0.3, 3.4, 0xc9ccd0); // lobby doors + canopy
+  const ts = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.2), new THREE.MeshBasicMaterial({ map: signTex('DSR TOWER', 'MAIN ENTRANCE') })); ts.position.set(0, 5.6, -13.85); world.add(ts);
+  // --- plaza: pines, hedges, flagpoles, guard post, bike rack ---
+  const pine = (x, z, s) => { bx(x, 1.2 * s, z, 0.4 * s, 2.4 * s, 0.4 * s, 0x5a4030); bx(x, 3.0 * s, z, 3.2 * s, 1.5 * s, 3.2 * s, 0x2f5a3a); bx(x, 4.3 * s, z, 2.4 * s, 1.4 * s, 2.4 * s, 0x356a41); bx(x, 5.4 * s, z, 1.4 * s, 1.2 * s, 1.4 * s, 0x3b7448); addCol(x, z, 0.8 * s, 0.8 * s, 3); };
+  [[-21, -9.5, 1.2], [-17, -11.5, 1.0], [-12.5, -8.5, 1.1], [-8, -11.5, 0.9], [8, -12, 1.1], [16, -9, 1.2], [21, -11.5, 1.0], [23, -7.5, 0.9]].forEach((p) => pine(p[0], p[1], p[2]));
+  [[-23, -4.4, -6.7], [4.4, 23, -6.7], [-23, -4.4, -13.4], [4.4, 23, -13.4]].forEach((h) => { bx((h[0] + h[1]) / 2, 0.45, h[2], h[1] - h[0], 0.9, 0.8, 0x3a6a3f); addCol((h[0] + h[1]) / 2, h[2], h[1] - h[0], 0.8, 0.9); }); // clipped hedges
+  [[9.5, 0xffffff], [12, 0x1f4e9c], [14.5, 0xffffff]].forEach((f) => { bx(f[0], 4.6, -8.5, 0.14, 9.2, 0.14, 0xd0d3d8); bx(f[0] + 0.7, 8.3, -8.5, 1.3, 0.8, 0.04, f[1]); addCol(f[0], -8.5, 0.3, 0.3, 9); });
+  bx(-27, 1.2, -10, 2.6, 2.4, 2.2, 0xc9ccd0); bx(-27, 2.5, -10, 3.0, 0.2, 2.6, 0x7d8287); bx(-27, 1.4, -8.87, 1.6, 0.9, 0.05, 0x7f9db3); addCol(-27, -10, 2.8, 2.4, 2.5); // guard post
+  [29.5, 30.5, 31.5, 32.5].forEach((x) => bx(x, 0.4, -9.5, 0.06, 0.8, 0.5, 0x555b61)); bx(31, 0.2, -9.5, 3.2, 0.06, 0.06, 0x555b61); addCol(31, -9.5, 3.4, 0.6, 0.8);
+  // --- guard rails: yellow/black bars (sidewalk + median) with gaps at the crosswalks and the lobby path, orange bollards along the median ---
+  const rail = (x0, x1, z) => { const n = Math.max(1, Math.round((x1 - x0) / 2)); for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n; bx(x, 0.5, z, 0.12, 1.0, 0.12, 0x22262b); bx(x, 0.88, z, 0.14, 0.14, 0.14, 0xe6b800); } bx((x0 + x1) / 2, 0.58, z, x1 - x0, 0.07, 0.07, 0x3b4048); bx((x0 + x1) / 2, 0.88, z, x1 - x0, 0.07, 0.07, 0x3b4048); addCol((x0 + x1) / 2, z, x1 - x0, 0.3, 1.0); };
+  [[-55.6, -36.5], [-31.5, -5], [5, 31.5], [36.5, 55.6]].forEach((r) => rail(r[0], r[1], -3.2)); // sidewalk rail
+  [[-55.6, -36.5], [-31.5, 31.5], [36.5, 55.6]].forEach((r) => rail(r[0], r[1], 10)); // median rail
+  for (let x = -54; x <= 54; x += 3) { if (Math.abs(x + 34) < 3.2 || Math.abs(x - 34) < 3.2) continue; bx(x, 0.45, 10.8, 0.14, 0.9, 0.14, 0xe05a2b); bx(x, 0.62, 10.8, 0.16, 0.12, 0.16, 0xf2f2f2); } // orange bollards
+  // --- street furniture: light-blue street lamps, cherry trees on the far sidewalk, bus shelter ---
+  for (let x = -49; x <= 49; x += 14) { bx(x, 3.5, 20.9, 0.14, 7, 0.14, 0x6fb1e0); bx(x, 6.9, 19.9, 0.1, 0.1, 2.1, 0x6fb1e0); bx(x, 6.8, 18.9, 0.55, 0.15, 0.3, 0xdfe6ee); addCol(x, 20.9, 0.3, 0.3, 7); }
+  const cherry = (x, z, s) => { bx(x, 1.3 * s, z, 0.4 * s, 2.6 * s, 0.4 * s, 0x6b4a3a); bx(x, 3.4 * s, z, 3.6 * s, 1.6 * s, 3.6 * s, 0xe9b8cc); bx(x, 4.6 * s, z, 2.8 * s, 1.2 * s, 2.8 * s, 0xf1c9d9); bx(x + 0.5 * s, 5.5 * s, z, 1.6 * s, 0.9 * s, 1.6 * s, 0xf6dbe5); addCol(x, z, 0.6 * s, 0.6 * s, 3); };
+  for (let x = -50; x <= 50; x += 8.5) cherry(x + rand(-0.8, 0.8), 23.4, rand(0.95, 1.15));
+  for (let x = -46; x <= 46; x += 11) cherry(x + rand(-1, 1), 28.5, rand(0.9, 1.1));
+  [-52, -44, -36, -28, 36, 44, 52].forEach((x) => cherry(x + rand(-0.5, 0.5), -5.3, 1.0)); // a few cherries on the tower-side sidewalk
+  bx(22.5, 2.55, -5.2, 5.4, 0.12, 2.0, 0x7d8287); [20, 25].forEach((x) => { bx(x, 1.25, -5.9, 0.12, 2.5, 0.12, 0x7d8287); addCol(x, -5.9, 0.3, 0.3, 2.5); }); bx(22.5, 1.2, -6.0, 4.6, 2.2, 0.05, 0x9ecbe0); bx(22.5, 0.5, -5.5, 3.2, 0.1, 0.5, 0x7a5636); addCol(22.5, -5.5, 3.2, 0.6, 0.5);
+  [[-12, 33, 0x7a5636], [12, 33, 0x7a5636], [-30, 25.6, 0x7a5636], [30, 25.6, 0x7a5636]].forEach((b) => { bx(b[0], 0.42, b[1], 1.8, 0.1, 0.5, b[2]); bx(b[0], 0.7, b[1] + 0.22, 1.8, 0.45, 0.08, b[2]); addCol(b[0], b[1], 1.9, 0.6, 0.7); });
+  // --- stranded cars (cover): body, glass cabin, wheels ---
+  const car = (x, z, col, alongX) => { const L = 4.4, W2 = 1.85, lx = alongX ? L : W2, lz = alongX ? W2 : L; bx(x, 0.55, z, lx, 0.7, lz, col); bx(x, 1.2, z, alongX ? L * 0.55 : W2 * 0.9, 0.62, alongX ? W2 * 0.9 : L * 0.55, 0x20252b); bx(x, 1.54, z, alongX ? L * 0.5 : W2 * 0.85, 0.07, alongX ? W2 * 0.85 : L * 0.5, col); [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach((w) => bx(x + (alongX ? w[0] * L * 0.32 : w[1] * W2 * 0.5), 0.3, z + (alongX ? w[1] * W2 * 0.5 : w[0] * L * 0.32), alongX ? 0.7 : 0.22, 0.6, alongX ? 0.22 : 0.7, 0x111111)); addCol(x, z, lx, lz, 1.4); };
+  [[-40, 1.6, 0xd7dadd], [-22, 7.6, 0x2b2f35], [-12, 4.9, 0xb7bcc2], [6, 1.5, 0xe7e9ec], [16, 7.9, 0x7a2430], [44, 4.8, 0xd7dadd], [-30, 12.6, 0x3a4048], [-8, 15.4, 0xe7e9ec], [12, 18.2, 0x8b9199], [30, 13.0, 0xd7dadd], [46, 16.0, 0x20252a], [-46, 15.2, 0xb7bcc2], [-18, -1.5, 0xf2f3f5], [27, -1.6, 0xf2f3f5], [0, 14.4, 0x4a6a8a]].forEach((c) => car(c[0], c[1], c[2], true));
+  // --- east: open-deck parking garage with a stair core and a vehicle entrance ---
+  const gt = (w, h) => { const t = garageTex.clone(); t.needsUpdate = true; t.repeat.set(w / 8, h / 3.2); return stdMat({ map: t, roughness: 0.9, envMapIntensity: 0.2 }); };
+  mk(new THREE.BoxGeometry(10, 16, 32), gt(32, 16), 33, 8, -24, 0, true); addCol(33, -24, 10, 32, 16); // x 28..38
+  mk(new THREE.BoxGeometry(10, 16, 32), gt(32, 16), 51, 8, -24, 0, true); addCol(51, -24, 10, 32, 16); // x 46..56
+  mk(new THREE.BoxGeometry(8, 12.6, 32), gt(32, 12.6), 42, 9.7, -24, 0, true); // above the entrance (the 8 m x 4 m pocket below it is open ground)
+  bx(42, 1.7, -12.2, 8, 3.4, 0.4, 0x2a2d30); addCol(42, -12.2, 8, 0.4, 3.4); bx(42, 0.03, -10, 8, 0.04, 4, 0x3a3c40); bx(42, 3.45, -8.2, 8.2, 0.2, 0.3, 0xe6b800);
+  mk(new THREE.BoxGeometry(5.2, 19, 6.4), concrete, 30.6, 9.5, -11.2, 0, true); addCol(30.6, -11.2, 5.2, 6.4, 19); bx(28.01, 9.5, -11.2, 0.04, 14, 1.4, 0x9ecbe0); bx(30.6, 9.5, -7.98, 1.4, 14, 0.04, 0x9ecbe0); // stair core with glass strip
+  const gs = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.9), new THREE.MeshBasicMaterial({ map: signTex('P', 'PARKING') })); gs.position.set(42, 4.4, -7.95); world.add(gs);
+  // --- west: grey office block with a dark door, then the overpass with the blue direction sign ---
+  mk(new THREE.BoxGeometry(24, 12, 24), concrete, -44, 6, -26, 0, true); addCol(-44, -26, 24, 24, 12);
+  for (let f = 0; f < 3; f++) bx(-44, 2.4 + f * 3.2, -13.95, 22, 1.2, 0.05, 0x35506b); bx(-44, 1.2, -13.93, 2.6, 2.4, 0.06, 0x14181c); bx(-44, 2.7, -13.2, 4.0, 0.2, 1.6, 0x7d8287);
+  bx(-46, 7.5, 10, 12, 2.0, 24, 0x9a9da1); bx(-46, 8.6, -1.9, 12, 0.5, 0.3, 0x8c8f93); bx(-46, 8.6, 21.9, 12, 0.5, 0.3, 0x8c8f93); [-3.8, 10, 21.6].forEach((z) => { bx(-46, 3.25, z, 1.4, 6.5, 1.4, 0xaeb2b6); addCol(-46, z, 1.6, 1.6, 6.5); }); // overpass deck + pillars
+  bx(-28, 3.5, -4.7, 0.25, 7, 0.25, 0x7d8287); addCol(-28, -4.7, 0.4, 0.4, 7); const os = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.6), new THREE.MeshBasicMaterial({ map: signTex('\uC624\uC0B0 Osan', '\uB3D9\uD0C4\uC2E0\uB3C4\uC2DC Dongtan Newtown') })); os.position.set(-28, 6.0, -4.45); world.add(os);
+  // --- boundary: construction hoarding around the block, plus a far skyline and tower cranes so there is no void ---
+  mk(new THREE.BoxGeometry(0.6, 3.2, ZS - ZN + 1), hoard, -XS - 0.3, 1.6, (ZS + ZN) / 2, 0, true); addCol(-XS - 0.3, (ZS + ZN) / 2, 0.6, ZS - ZN + 1, 3.2);
+  mk(new THREE.BoxGeometry(0.6, 3.2, ZS - ZN + 1), hoard, XS + 0.3, 1.6, (ZS + ZN) / 2, 0, true); addCol(XS + 0.3, (ZS + ZN) / 2, 0.6, ZS - ZN + 1, 3.2);
+  mk(new THREE.BoxGeometry(XS * 2 + 1.2, 3.2, 0.6), hoard, 0, 1.6, ZS + 0.3, 0, true); addCol(0, ZS + 0.3, XS * 2 + 1.2, 0.6, 3.2);
+  mk(new THREE.BoxGeometry(XS * 2 + 1.2, 6, 0.6), hoard, 0, 3, ZN - 0.3, 0, true); addCol(0, ZN - 0.3, XS * 2 + 1.2, 0.6, 6);
+  bx(-30, 1.0, -37, 8, 2.0, 6, 0x6a7078); bx(-30, 3.0, -37, 6, 2.0, 5, 0x5f656c); addCol(-30, -37, 8, 6, 4); // service sheds in the gap between the office block and the towers
+  const far = stdMat({ color: 0x8d96a0, roughness: 1, envMapIntensity: 0.1 });
+  [[-60, 68, 22, 46], [-30, 70, 26, 36], [0, 74, 30, 58], [34, 70, 24, 40], [62, 66, 22, 50], [-80, 20, 20, 44], [-84, -20, 24, 36], [84, 24, 22, 52], [84, -16, 22, 40], [-30, -72, 26, 48], [30, -76, 30, 62], [0, -70, 20, 34]].forEach((b) => mk(new THREE.BoxGeometry(b[2], b[3], b[2]), far, b[0], b[3] / 2, b[1], 0, false));
+  [[-72, 52], [74, -46]].forEach((c) => { bx(c[0], 20, c[1], 0.8, 40, 0.8, 0xe3b21c); bx(c[0] + 8, 40.5, c[1], 22, 0.7, 0.7, 0xe3b21c); bx(c[0] - 5, 40.5, c[1], 8, 0.7, 0.7, 0xe3b21c); bx(c[0] - 6.5, 38.5, c[1], 2.2, 3.2, 1.6, 0x888d92); });
+  // --- spawn gates: road ends, tower lobby, garage entrance, office block door, south park ---
+  GATES.length = 0;
+  [[-54, 4.5], [-54, 15.5], [54, 4.5], [54, 15.5], [0, -12], [42, -9.8], [-44, -12.4], [-24, 31], [24, 31], [0, 31]].forEach((g) => GATES.push(g));
+  const gm = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a1a, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+  GATES.forEach((g) => { const s = new THREE.Sprite(gm); s.scale.set(4, 4, 1); s.position.set(g[0], 2.4, g[1]); world.add(s); });
+  B.build(stdMat({ color: 0xffffff, roughness: 0.85, envMapIntensity: 0.3 }), true);
+}
+
 /* ---- map: Training Range (one big DSR meeting room; the player cannot move) ---- */
 const TR = { pz: -2.5, slots: [[-2.6, -15.5], [0, -15.5], [2.6, -15.5]], list: [], last: [], t: [0, 0, 0] }, TRAIN_HITS = 5, TRAIN_DIST = 10; // Training Range: player-to-zombie distance in metres
 const isTrain = () => curMap === 'training' || curMap === 'sandbag', trainHits = () => curMap === 'sandbag' ? 8 : TRAIN_HITS;
@@ -944,14 +1035,20 @@ const MAPS_ALL = {
     hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 },
   office2: { name: 'NOVA Tower 7th Floor', tag: 'Night \u00b7 open-plan office', half: 36, xs: 30, start: [0, 24], build: buildOffice2, ground: [carpetTex, 0xffffff],
     sky: { hor: [0.07, 0.08, 0.1], top: [0.04, 0.045, 0.06], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.15, 0.95, 0.2], fog: 0.015,
-    hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 } // second office map: shown as a map type under the DSR button (not a menu tile of its own)
+    hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 }, // second office map: shown as a map type under the DSR button (not a menu tile of its own)
+  tower: { name: 'DSR Tower Front', tag: 'Overcast \u00b7 street in front of the tower', half: 56, xs: 56, zs: 38, zc: -2, start: [0, -8], startYaw: Math.PI, build: buildTower, ground: [null, 0x8a8f94],
+    sky: { hor: [0.66, 0.7, 0.79], top: [0.42, 0.5, 0.68], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.4, 0.85, 0.3], fog: 0.0065,
+    hemi: [0xe6eeff, 0x80858c, 1.05], sun: [0xf2f4ff, 0.75], exp: 1.0,
+    mini: [[-56, 56, -3, 20.5, 'rgba(80,82,88,.55)'], [-56, 56, -6, -3, 'rgba(190,192,196,.35)'], [-56, 56, 20.5, 24, 'rgba(190,192,196,.3)'], [-24, 24, -14, -6, 'rgba(95,138,69,.35)'], [-56, 56, 26, 36, 'rgba(95,138,69,.3)'],
+      [2, 26, -40, -22, 'rgba(120,150,185,.6)'], [-12, 2, -40, -24, 'rgba(120,150,185,.5)'], [-26, -12, -40, -26, 'rgba(120,150,185,.4)'], [-14, 14, -22, -14, 'rgba(120,150,185,.45)'], [28, 56, -40, -8, 'rgba(170,172,172,.55)'], [-56, -32, -38, -14, 'rgba(165,169,173,.5)'], [-52, -40, -2, 22, 'rgba(150,150,155,.35)']] } // third map: the street in front of the DSR tower (map type under the DSR button)
 };
 const MAPS = { office: MAPS_ALL.office, training: MAPS_ALL.training, sandbag: MAPS_ALL.sandbag }; // order = order of the menu buttons; first = default
 let curMap = 'office';
 try { const sv = localStorage.getItem('layoutsniper.map2'); if (sv && MAPS_ALL[sv]) curMap = sv; } catch (e) { /* storage unavailable */ }
-const isOfficeMap = (id) => (id || curMap) === 'office' || (id || curMap) === 'office2'; // the survival maps (DSR 19th Floor + NOVA Tower)
+const SURVIVAL_MAPS = ['office', 'office2', 'tower'];
+const isOfficeMap = (id) => SURVIVAL_MAPS.indexOf(id || curMap) >= 0; // the survival maps (DSR 19th Floor, NOVA Tower, DSR Tower Front)
 let officeVar = 'office'; // which survival map the first menu button stands for
-try { const ov = localStorage.getItem('layoutsniper.officeVar'); if (ov === 'office2') officeVar = ov; } catch (e) { /* storage unavailable */ }
+try { const ov = localStorage.getItem('layoutsniper.officeVar'); if (SURVIVAL_MAPS.indexOf(ov) >= 0) officeVar = ov; } catch (e) { /* storage unavailable */ }
 if (isOfficeMap(curMap)) officeVar = curMap;
 
 let envTex = null;
@@ -2110,7 +2207,7 @@ function startGame() {
   initAudio();
   clearEnemies();
   WEAPONS.forEach((x) => { x.mag = x.magMax; x.reserve = x.res0; }); NADES.forEach((n) => scene.remove(n.m)); NADES.length = 0;
-  Object.assign(P, { x: (MAPS_ALL[curMap].start || [0, 0])[0], z: (MAPS_ALL[curMap].start || [0, 0])[1], y: 0, vy: 0, vx: 0, vz: 0, yaw: 0, pitch: 0, hp: maxHp(), dead: false, kickP: 0, shake: 0, speed: 0 });
+  Object.assign(P, { x: (MAPS_ALL[curMap].start || [0, 0])[0], z: (MAPS_ALL[curMap].start || [0, 0])[1], y: 0, vy: 0, vx: 0, vz: 0, yaw: MAPS_ALL[curMap].startYaw || 0, pitch: 0, hp: maxHp(), dead: false, kickP: 0, shake: 0, speed: 0 });
   Object.assign(S, { score: 0, kills: 0, heads: 0, shots: 0, hits: 0 });
   cur = 0; fireT = 0.4; reloadT = 0; swapT = 0.4; bloom = 0; kick = 0; dmgFlash = 0; W.n = 0; W.state = 'idle';
   state = 'playing'; paused = false;
@@ -2134,7 +2231,7 @@ Object.keys(MAPS).forEach((id) => {
   b.addEventListener('click', () => selectMap(id)); mapBox.appendChild(b);
 });
 const sbBox = $('sbOpts');
-['office', 'office2'].forEach((id) => { // map types shown under the first (DSR) button
+SURVIVAL_MAPS.forEach((id) => { // map types shown under the first (DSR) button
   const b = document.createElement('button'); b.type = 'button'; b.className = 'mapb'; b.dataset.id = id; b.dataset.kind = 'map'; b.setAttribute('role', 'radio');
   b.innerHTML = '<b>' + MAPS_ALL[id].name + '</b><small>' + MAPS_ALL[id].tag + '</small>';
   b.addEventListener('click', () => selectMap(id, true)); sbBox.appendChild(b);
@@ -2171,13 +2268,13 @@ function toMenu() {
 $('toMenu').addEventListener('click', toMenu);
 
 /* ---------------- save / load: a survival run (wave, score, health, ammo, position, living zombies); each survival map has its own two slots ---------------- */
-const SAVE_KEYS = { office: ['layoutsniper.save1', 'layoutsniper.save2'], office2: ['layoutsniper.o2save1', 'layoutsniper.o2save2'] }; // per map: [newest save, the one saved before it]
+const SAVE_KEYS = { office: ['layoutsniper.save1', 'layoutsniper.save2'], office2: ['layoutsniper.o2save1', 'layoutsniper.o2save2'], tower: ['layoutsniper.tsave1', 'layoutsniper.tsave2'] }; // per map: [newest save, the one saved before it]
 const saveMapId = () => isOfficeMap(curMap) ? curMap : officeVar; // which map the Load buttons refer to (menu: the selected survival map)
-const SAVE_NAMES = { office: 'DSR 19th Floor', office2: 'NOVA Tower 7th Floor' };
+const SAVE_NAMES = { office: 'DSR 19th Floor', office2: 'NOVA Tower 7th Floor', tower: 'DSR Tower Front' };
 function readSave(slot, map) { map = map || saveMapId(); try { const j = JSON.parse(localStorage.getItem(SAVE_KEYS[map][slot === 2 ? 1 : 0]) || 'null'); return j && j.v === 1 && j.map === map && j.W && j.P && j.S ? j : null; } catch (err) { return null; } }
 function refreshLoadBtn() {
   const set = (id, d, label) => { const b = $(id); b.hidden = !d; if (d) { b.textContent = label + tagm + ' \u00b7 Wave ' + d.W.n; try { b.title = new Date(d.t).toLocaleString(); } catch (err) { /* ignore */ } } };
-  const d1 = readSave(1), d2 = readSave(2), tagm = isOfficeMap(curMap) ? '' : (saveMapId() === 'office2' ? ' \u00b7 NOVA' : ' \u00b7 DSR');
+  const d1 = readSave(1), d2 = readSave(2), tagm = isOfficeMap(curMap) ? '' : ' \u00b7 ' + ({ office: 'DSR', office2: 'NOVA', tower: 'TOWER' })[saveMapId()];
   set('loadBtn', d1, 'Load'); set('loadBtn2', d2, 'Previous'); set('pLoad', d1, 'Load'); set('pLoad2', d2, 'Previous'); set('oLoad', d1, 'Load'); set('oLoad2', d2, 'Previous');
   $('pSave').hidden = !isOfficeMap(curMap);
 }
@@ -2434,16 +2531,18 @@ const MM = { c: null, g: null, t: 0 };
 function drawMinimap(dt) { // DSR 19th floor only: green = you (triangle = facing), red = zombies, top = start direction
   if (!MM.c) { MM.c = $('mm'); MM.g = MM.c.getContext('2d'); }
   const show = isOfficeMap() && state === 'playing';
+  { const m0 = MAPS_ALL[curMap], a0 = (m0.xs || 38) / (m0.zs || HALF), cw = a0 > 1 ? 176 : Math.round(176 * a0), ch = a0 > 1 ? Math.round(176 / a0) : 176; if (show && (MM.c.width !== cw || MM.c.height !== ch)) { MM.c.width = cw; MM.c.height = ch; MM.t = 0; } } // the minimap canvas follows each map's aspect ratio
   if (MM.c.classList.contains('on') !== show) MM.c.classList.toggle('on', show);
   if (!show) return;
   MM.t -= dt; if (MM.t > 0) return; MM.t = 0.05;
-  const g = MM.g, W = MM.c.width, H = MM.c.height, XS = MAPS_ALL[curMap].xs || 38, ZS = HALF, X = (x) => (x + XS) / (XS * 2) * W, Z = (z) => (z + ZS) / (ZS * 2) * H;
+  const g = MM.g, W = MM.c.width, H = MM.c.height, XS = MAPS_ALL[curMap].xs || 38, ZS = MAPS_ALL[curMap].zs || HALF, ZC = MAPS_ALL[curMap].zc || 0, X = (x) => (x + XS) / (XS * 2) * W, Z = (z) => (z - ZC + ZS) / (ZS * 2) * H;
   g.clearRect(0, 0, W, H);
-  g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(X(-8), 0, X(8) - X(-8), H); // lobby strip
+  if (curMap === 'office') { g.fillStyle = 'rgba(255,255,255,.08)'; g.fillRect(X(-8), 0, X(8) - X(-8), H); } // lobby strip (DSR 19th Floor)
+  for (const r of MAPS_ALL[curMap].mini || []) { g.fillStyle = r[4]; g.fillRect(X(r[0]), Z(r[2]), X(r[1]) - X(r[0]), Z(r[3]) - Z(r[2])); } // building / road footprints of the outdoor map
   g.fillStyle = 'rgba(255,60,40,.45)'; for (const q of GATES) g.fillRect(X(q[0]) - 3, Z(q[1]) - 3, 6, 6); // spawn doors
   g.fillStyle = '#ff2d2d'; g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1;
   for (const e of enemies) { if (e.dead || e.idle) continue; g.beginPath(); g.arc(X(e.x), Z(e.z), 3.4, 0, TAU); g.fill(); g.stroke(); }
-  const px = X(clamp(P.x, -XS, XS)), pz = Z(clamp(P.z, -ZS, ZS)), fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
+  const px = X(clamp(P.x, -XS, XS)), pz = Z(clamp(P.z, ZC - ZS, ZC + ZS)), fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
   g.fillStyle = '#3dff7a'; g.strokeStyle = '#06210f'; g.lineWidth = 1.5;
   g.beginPath(); g.moveTo(px + fx * 8, pz + fz * 8); g.lineTo(px - fx * 4 - fz * 5, pz - fz * 4 + fx * 5); g.lineTo(px - fx * 4 + fz * 5, pz - fz * 4 - fx * 5); g.closePath(); g.fill(); g.stroke();
 }
