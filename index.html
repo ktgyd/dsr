@@ -468,7 +468,7 @@ glowTex.wrapS = glowTex.wrapT = THREE.ClampToEdgeWrapping;
 const COL = [];            // axis-aligned colliders {x0,x1,z0,z1,h}
 const GATES = [];
 const world = new THREE.Group(); scene.add(world);
-function addCol(x, z, w, d, h) { COL.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h: h }); }
+function addCol(x, z, w, d, h, st) { COL.push({ x0: x - w / 2, x1: x + w / 2, z0: z - d / 2, z1: z + d / 2, h: h, st: !!st }); } // st = stair tread: the player walks up it, zombies walk straight over it
 function stdMat(o) { return new THREE.MeshStandardMaterial(Object.assign({ roughness: 0.9, metalness: 0, envMapIntensity: 0.5 }, o)); }
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(560, 560), stdMat({ map: floorTex, envMapIntensity: 0.25 }));
 ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
@@ -702,7 +702,10 @@ function buildOffice() {
           B.add(cx, 0.48, pz + j * 1.95, 0.5, 0.07, 0.5, 0x262a31); B.add(cx, 0.82, pz + j * 2.18, 0.48, 0.55, 0.07, 0x262a31); B.add(cx, 0.24, pz + j * 1.95, 0.07, 0.45, 0.07, 0x15171b);
         }
       });
-      addCol(px, pz, 8.6, 3.6, 1.5);
+      // desk tops (0.77 m) can be climbed with a jump; the centre spine, end caps and desk dividers (1.5 m) can be climbed from a desk top with a second jump
+    for (let k = 0; k < 4; k++) [-1, 1].forEach((j) => addCol(px + (k - 1.5) * 2.1, pz + j * 0.9, 1.9, 1.6, 0.77));
+    addCol(px, pz, 8.4, 0.16, 1.5); addCol(px - 4.3, pz, 0.14, 3.6, 1.5); addCol(px + 4.3, pz, 0.14, 3.6, 1.5);
+    for (let b = 1; b < 4; b++) addCol(px + (b - 2) * 2.1, pz, 0.12, 3.6, 1.5);
     }));
     // wall-mounted TVs on the outside of the core's side walls (2 per side = 4): beside meeting room N2 (z=-24) and the pantry/S2 wall (z=22), facing the desks
     [-24, 22].forEach((tz) => { mk(new THREE.BoxGeometry(0.08, 0.9, 1.5), dark, s * 8.24, 2.2, tz, 0, false); mk(new THREE.BoxGeometry(0.02, 0.8, 1.4), new THREE.MeshBasicMaterial({ color: 0x3a78b8 }), s * 8.29, 2.2, tz, 0, false); });
@@ -853,7 +856,10 @@ function buildOffice2() {
         B.add(cx, 0.48, pz + j * 1.95, 0.5, 0.07, 0.5, 0x262a31); B.add(cx, 0.82, pz + j * 2.18, 0.48, 0.55, 0.07, 0x262a31); B.add(cx, 0.24, pz + j * 1.95, 0.07, 0.45, 0.07, 0x15171b);
       }
     });
-    addCol(px, pz, 8.6, 3.6, 1.5);
+    // desk tops (0.77 m) can be climbed with a jump; the centre spine, end caps and desk dividers (1.5 m) can be climbed from a desk top with a second jump
+    for (let k = 0; k < 4; k++) [-1, 1].forEach((j) => addCol(px + (k - 1.5) * 2.1, pz + j * 0.9, 1.9, 1.6, 0.77));
+    addCol(px, pz, 8.4, 0.16, 1.5); addCol(px - 4.3, pz, 0.14, 3.6, 1.5); addCol(px + 4.3, pz, 0.14, 3.6, 1.5);
+    for (let b = 1; b < 4; b++) addCol(px + (b - 2) * 2.1, pz, 0.12, 3.6, 1.5);
   };
   [-13, 0, 13].forEach((px) => [-19, -10.5, -2, 6.5, 15].forEach((pz) => pod(px, pz)));
   [[-18.6, -22.5], [18.6, -22.5], [-18.6, 18.5], [18.6, 18.5]].forEach((p) => plant(p[0], p[1], true)); // planters at the corridor corners
@@ -900,7 +906,7 @@ function buildOffice2() {
   [[0, -30], [0, -14], [0, 2], [0, 18], [0, 30], [-21, -6], [21, 8]].forEach((p) => { const l = new THREE.PointLight(0xfff0dd, 1.1, 32, 2); l.position.set(p[0], 3.1, p[1]); world.add(l); });
 }
 
-/* ---- map: DSR Tower Front (third survival map): the street in front of the glass DSR tower, built from street-view photos: three staggered glass towers with dark mechanical bands, a plaza with pines and flagpoles, guard-rail sidewalks, a blue bus lane, a yellow-black median rail with orange bollards, cherry trees, a gray open-deck parking garage on the east side, and an overpass with the blue direction sign on the west side ---- */
+/* ---- map: DSR Tower Front (third survival map): the street in front of the glass DSR tower, built from street-view photos: three staggered glass towers with dark mechanical bands, a plaza with pines and flagpoles, guard-rail sidewalks, a blue bus lane, a yellow-black median rail with orange bollards, cherry trees, a gray open-deck parking garage on the east side (entered from a side road), a small office block with wooden stairs, and a viaduct with a crosswalk beneath it on the west side ---- */
 function mkGlassTex() { // curtain-wall tile = 18 m wide x 56 m tall (14 floors of 4 m): blue-grey glass panels, thin mullions, dark mechanical band at the top
   const c = document.createElement('canvas'); c.width = 256; c.height = 800; const x = c.getContext('2d');
   const g = x.createLinearGradient(0, 0, 0, 800); g.addColorStop(0, '#9db3c6'); g.addColorStop(1, '#7b94aa'); x.fillStyle = g; x.fillRect(0, 0, 256, 800);
@@ -916,7 +922,7 @@ function mkGarageTex() { // one open parking deck: light slab on top, dark open 
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = maxAniso; t.wrapS = t.wrapT = THREE.RepeatWrapping; return t;
 }
 function buildTower() {
-  const XS = 72, ZN = -40, ZS = 36; // playable street block: x -72..72, z -40..36
+  const XS = 100, ZN = -40, ZS = 36; // playable street block: x -100..100, z -40..36
   const B = new Batch(); const bx = (x, y, z, w, h, d, c) => B.add(x, y, z, w, h, d, c);
   const concrete = stdMat({ color: 0xaeb2b6, roughness: 0.9, envMapIntensity: 0.3 }), hoard = stdMat({ color: 0xd3dae1, roughness: 0.8 });
   const glassTex = mkGlassTex(), garageTex = mkGarageTex();
@@ -928,62 +934,69 @@ function buildTower() {
   bx(0, 0.05, -10, XS * 2, 0.1, 8, 0xc9cacb); // plaza z -14..-6
   [[-24, -4], [4, 24]].forEach((l) => bx((l[0] + l[1]) / 2, 0.1, -10, l[1] - l[0], 0.14, 7, 0x5f8a45)); // lawns beside the central walkway
   bx(0, 0.1, 31, XS * 2, 0.1, 10, 0x5f8a45); // south park strip z 26..36
-  for (let x = -70; x < 71; x += 6) { bx(x, 0.026, 3.2, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 6.3, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 12.8, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 15.8, 3, 0.02, 0.16, 0xf0f0f0); } // dashed lane lines
+  for (let x = -98; x < 99; x += 6) { bx(x, 0.026, 3.2, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 6.3, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 12.8, 3, 0.02, 0.16, 0xf0f0f0); bx(x, 0.026, 15.8, 3, 0.02, 0.16, 0xf0f0f0); } // dashed lane lines
   [8.7, 9.1, 10.9, 11.3].forEach((z) => bx(0, 0.027, z, XS * 2, 0.02, 0.1, 0xe6b800)); // double yellow lines each side of the median rail
+  bx(67.5, 0.075, -20.5, 7, 0.15, 35, 0x4a4c50); bx(67.5, 0.16, -20.5, 0.12, 0.02, 33, 0xe6b800); bx(79, 0.075, -34, 14, 0.15, 8, 0x3a3c40); // two-lane side road branching off the central road (x 64..71) north to the garage, ending in a right turn into the entrance (z -38..-30)
+  for (let z = 0.6; z <= 19.5; z += 1.1) { if (z > 8.3 && z < 11.7) continue; bx(-90.5, 0.03, z, 4, 0.02, 0.5, 0xf2f2f2); } // crosswalk under the viaduct
   [-34, 34].forEach((cx, k) => { for (let z = 0.6; z <= 19.5; z += 1.1) { if (z > 8.3 && z < 11.7) continue; bx(cx, 0.03, z, 4, 0.02, k ? 0.55 : 0.5, k && Math.round(z / 1.1) % 2 ? 0xe6b800 : 0xf2f2f2); } }); // crosswalks (the east one is the yellow/white raised hump)
   bx(34, 0.1, 5, 5.2, 0.12, 8.2, 0x6a6c70); bx(34, 0.1, 15, 5.2, 0.12, 8.2, 0x6a6c70);
   // --- the glass towers: three identical blocks in a row with small gaps + a shared glass podium with the lobby ---
-  glassBox(-39, -23, -40, -24, 112); glassBox(-8, 8, -40, -24, 112); glassBox(23, 39, -40, -24, 112); // three identical 28-storey towers (28 x 4 m = 112 m), 15 m apart
-  glassBox(-39, 39, -24, -14, 8); // shared glass podium
+  glassBox(-63, -31, -40, -24, 112); glassBox(-16, 16, -40, -24, 112); glassBox(31, 63, -40, -24, 112); // three identical 28-storey towers (32 m wide, 112 m tall), 15 m apart
+  glassBox(-63, 63, -24, -14, 8); // shared glass podium
   bx(0, 2.1, -13.9, 9, 4.2, 0.1, 0x14181c); [-1.1, 1.1].forEach((x) => bx(x, 1.4, -13.84, 2.0, 2.8, 0.06, 0x7f9db3)); bx(0, 3.6, -13.8, 10, 0.3, 3.4, 0xc9ccd0); // lobby doors + canopy
   const ts = new THREE.Mesh(new THREE.PlaneGeometry(6, 1.2), new THREE.MeshBasicMaterial({ map: signTex('DSR TOWER', 'MAIN ENTRANCE') })); ts.position.set(0, 5.6, -13.85); world.add(ts);
   // --- plaza: pines, hedges, flagpoles, guard post, bike rack ---
   const pine = (x, z, s) => { bx(x, 1.2 * s, z, 0.4 * s, 2.4 * s, 0.4 * s, 0x5a4030); bx(x, 3.0 * s, z, 3.2 * s, 1.5 * s, 3.2 * s, 0x2f5a3a); bx(x, 4.3 * s, z, 2.4 * s, 1.4 * s, 2.4 * s, 0x356a41); bx(x, 5.4 * s, z, 1.4 * s, 1.2 * s, 1.4 * s, 0x3b7448); addCol(x, z, 0.8 * s, 0.8 * s, 3); };
-  [[-21, -9.5, 1.2], [-17, -11.5, 1.0], [-12.5, -8.5, 1.1], [-8, -11.5, 0.9], [8, -12, 1.1], [16, -9, 1.2], [21, -11.5, 1.0], [23, -7.5, 0.9], [-34, -10, 1.1], [-38, -8, 1.0], [34, -11, 1.1], [38, -8.5, 1.0]].forEach((p) => pine(p[0], p[1], p[2]));
+  [[-21, -9.5, 1.2], [-17, -11.5, 1.0], [-12.5, -8.5, 1.1], [-8, -11.5, 0.9], [8, -12, 1.1], [16, -9, 1.2], [21, -11.5, 1.0], [23, -7.5, 0.9], [-34, -10, 1.1], [-38, -8, 1.0], [34, -11, 1.1], [38, -8.5, 1.0], [-46, -10, 1.2], [-52, -8.5, 1.0], [-58, -11, 1.1], [46, -9.5, 1.1], [52, -11, 1.0], [58, -8.5, 1.2]].forEach((p) => pine(p[0], p[1], p[2]));
   [[-23, -4.4, -6.7], [4.4, 23, -6.7], [-23, -4.4, -13.4], [4.4, 23, -13.4]].forEach((h) => { bx((h[0] + h[1]) / 2, 0.45, h[2], h[1] - h[0], 0.9, 0.8, 0x3a6a3f); addCol((h[0] + h[1]) / 2, h[2], h[1] - h[0], 0.8, 0.9); }); // clipped hedges
   [[9.5, 0xffffff], [12, 0x1f4e9c], [14.5, 0xffffff]].forEach((f) => { bx(f[0], 4.6, -8.5, 0.14, 9.2, 0.14, 0xd0d3d8); bx(f[0] + 0.7, 8.3, -8.5, 1.3, 0.8, 0.04, f[1]); addCol(f[0], -8.5, 0.3, 0.3, 9); });
   bx(-27, 1.2, -10, 2.6, 2.4, 2.2, 0xc9ccd0); bx(-27, 2.5, -10, 3.0, 0.2, 2.6, 0x7d8287); bx(-27, 1.4, -8.87, 1.6, 0.9, 0.05, 0x7f9db3); addCol(-27, -10, 2.8, 2.4, 2.5); // guard post
   [24.9, 25.7, 26.5, 27.3].forEach((x) => bx(x, 0.4, -9.5, 0.06, 0.8, 0.5, 0x555b61)); bx(26.1, 0.2, -9.5, 3.2, 0.06, 0.06, 0x555b61); addCol(26.1, -9.5, 3.4, 0.6, 0.8);
   // --- guard rails: yellow/black bars (sidewalk + median) with gaps at the crosswalks and the lobby path, orange bollards along the median ---
-  const rail = (x0, x1, z) => { const n = Math.max(1, Math.round((x1 - x0) / 2)); for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n; bx(x, 0.5, z, 0.12, 1.0, 0.12, 0x22262b); bx(x, 0.88, z, 0.14, 0.14, 0.14, 0xe6b800); } bx((x0 + x1) / 2, 0.58, z, x1 - x0, 0.07, 0.07, 0x3b4048); bx((x0 + x1) / 2, 0.88, z, x1 - x0, 0.07, 0.07, 0x3b4048); addCol((x0 + x1) / 2, z, x1 - x0, 0.3, 1.0); };
-  [[-71.6, -36.5], [-31.5, -5], [5, 31.5], [36.5, 71.6]].forEach((r) => rail(r[0], r[1], -3.2)); // sidewalk rail
-  [[-71.6, -36.5], [-31.5, 31.5], [36.5, 71.6]].forEach((r) => rail(r[0], r[1], 10)); // median rail
-  for (let x = -70; x <= 70; x += 3) { if (Math.abs(x + 34) < 3.2 || Math.abs(x - 34) < 3.2) continue; bx(x, 0.45, 10.8, 0.14, 0.9, 0.14, 0xe05a2b); bx(x, 0.62, 10.8, 0.16, 0.12, 0.16, 0xf2f2f2); } // orange bollards
+  const rail = (x0, x1, z) => { const n = Math.max(1, Math.round((x1 - x0) / 2)); for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n; bx(x, 0.5, z, 0.12, 1.0, 0.12, 0x22262b); bx(x, 0.88, z, 0.14, 0.14, 0.14, 0xe6b800); } bx((x0 + x1) / 2, 0.58, z, x1 - x0, 0.07, 0.07, 0x3b4048); bx((x0 + x1) / 2, 0.88, z, x1 - x0, 0.07, 0.07, 0x3b4048); addCol((x0 + x1) / 2, z, x1 - x0, 0.3, 0.9); }; // collider 0.9 m so the player can jump over the rails
+  [[-99.6, -92.5], [-88.5, -36.5], [-31.5, -5], [5, 31.5], [36.5, 63.5], [71.5, 99.6]].forEach((r) => rail(r[0], r[1], -3.2)); // sidewalk rail
+  [[-99.6, -92.5], [-88.5, -36.5], [-31.5, 31.5], [36.5, 99.6]].forEach((r) => rail(r[0], r[1], 10)); // median rail
+  for (let x = -98; x <= 98; x += 3) { if (Math.abs(x + 34) < 3.2 || Math.abs(x - 34) < 3.2 || Math.abs(x + 90.5) < 3.2) continue; bx(x, 0.45, 10.8, 0.14, 0.9, 0.14, 0xe05a2b); bx(x, 0.62, 10.8, 0.16, 0.12, 0.16, 0xf2f2f2); } // orange bollards
   // --- street furniture: light-blue street lamps, cherry trees on the far sidewalk, bus shelter ---
-  for (let x = -63; x <= 63; x += 14) { bx(x, 3.5, 20.9, 0.14, 7, 0.14, 0x6fb1e0); bx(x, 6.9, 19.9, 0.1, 0.1, 2.1, 0x6fb1e0); bx(x, 6.8, 18.9, 0.55, 0.15, 0.3, 0xdfe6ee); addCol(x, 20.9, 0.3, 0.3, 7); }
+  for (let x = -91; x <= 91; x += 14) { if (x < -86) continue; bx(x, 3.5, 20.9, 0.14, 7, 0.14, 0x6fb1e0); bx(x, 6.9, 19.9, 0.1, 0.1, 2.1, 0x6fb1e0); bx(x, 6.8, 18.9, 0.55, 0.15, 0.3, 0xdfe6ee); addCol(x, 20.9, 0.3, 0.3, 7); }
   const cherry = (x, z, s) => { bx(x, 1.3 * s, z, 0.4 * s, 2.6 * s, 0.4 * s, 0x6b4a3a); bx(x, 3.4 * s, z, 3.6 * s, 1.6 * s, 3.6 * s, 0xe9b8cc); bx(x, 4.6 * s, z, 2.8 * s, 1.2 * s, 2.8 * s, 0xf1c9d9); bx(x + 0.5 * s, 5.5 * s, z, 1.6 * s, 0.9 * s, 1.6 * s, 0xf6dbe5); addCol(x, z, 0.6 * s, 0.6 * s, 3); };
-  for (let x = -68; x <= 68; x += 8.5) cherry(x + rand(-0.8, 0.8), 23.4, rand(0.95, 1.15));
-  for (let x = -66; x <= 66; x += 11) cherry(x + rand(-1, 1), 28.5, rand(0.9, 1.1));
-  [-68, -60, -52, -44, 44, 52, 60, 68].forEach((x) => cherry(x + rand(-0.5, 0.5), -5.3, 1.0)); // a few cherries on the tower-side sidewalk
+  for (let x = -96; x <= 96; x += 8.5) { const cx = x + rand(-0.8, 0.8), cs = rand(0.95, 1.15); if (x > -86) cherry(cx, 23.4, cs); }
+  for (let x = -96; x <= 96; x += 11) { const cx = x + rand(-1, 1), cs = rand(0.9, 1.1); if (x > -86) cherry(cx, 28.5, cs); }
+  [-72, -68, -64, 80, 88, 96].forEach((x) => cherry(x + rand(-0.5, 0.5), -5.3, 1.0)); // a few cherries on the tower-side sidewalk
   bx(22.5, 2.55, -5.2, 5.4, 0.12, 2.0, 0x7d8287); [20, 25].forEach((x) => { bx(x, 1.25, -5.9, 0.12, 2.5, 0.12, 0x7d8287); addCol(x, -5.9, 0.3, 0.3, 2.5); }); bx(22.5, 1.2, -6.0, 4.6, 2.2, 0.05, 0x9ecbe0); bx(22.5, 0.5, -5.5, 3.2, 0.1, 0.5, 0x7a5636); addCol(22.5, -5.5, 3.2, 0.6, 0.5);
   [[-12, 33, 0x7a5636], [12, 33, 0x7a5636], [-30, 25.6, 0x7a5636], [30, 25.6, 0x7a5636]].forEach((b) => { bx(b[0], 0.42, b[1], 1.8, 0.1, 0.5, b[2]); bx(b[0], 0.7, b[1] + 0.22, 1.8, 0.45, 0.08, b[2]); addCol(b[0], b[1], 1.9, 0.6, 0.7); });
   // --- stranded cars (cover): body, glass cabin, wheels ---
   const car = (x, z, col, alongX) => { const L = 4.4, W2 = 1.85, lx = alongX ? L : W2, lz = alongX ? W2 : L; bx(x, 0.55, z, lx, 0.7, lz, col); bx(x, 1.2, z, alongX ? L * 0.55 : W2 * 0.9, 0.62, alongX ? W2 * 0.9 : L * 0.55, 0x20252b); bx(x, 1.54, z, alongX ? L * 0.5 : W2 * 0.85, 0.07, alongX ? W2 * 0.85 : L * 0.5, col); [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach((w) => bx(x + (alongX ? w[0] * L * 0.32 : w[1] * W2 * 0.5), 0.3, z + (alongX ? w[1] * W2 * 0.5 : w[0] * L * 0.32), alongX ? 0.7 : 0.22, 0.6, alongX ? 0.22 : 0.7, 0x111111)); addCol(x, z, lx, lz, 1.4); };
-  [[-40, 1.6, 0xd7dadd], [-22, 7.6, 0x2b2f35], [-12, 4.9, 0xb7bcc2], [6, 1.5, 0xe7e9ec], [16, 7.9, 0x7a2430], [44, 4.8, 0xd7dadd], [-30, 12.6, 0x3a4048], [-8, 15.4, 0xe7e9ec], [12, 18.2, 0x8b9199], [30, 13.0, 0xd7dadd], [46, 16.0, 0x20252a], [-46, 15.2, 0xb7bcc2], [-18, -1.5, 0xf2f3f5], [27, -1.6, 0xf2f3f5], [0, 14.4, 0x4a6a8a], [-60, 4.9, 0xd7dadd], [-66, 12.8, 0x2b2f35], [60, 7.8, 0xb7bcc2], [66, 15.4, 0xe7e9ec]].forEach((c) => car(c[0], c[1], c[2], true));
-  // --- east: open-deck parking garage with a stair core and a vehicle entrance ---
+  [[-40, 1.6, 0xd7dadd], [-22, 7.6, 0x2b2f35], [-12, 4.9, 0xb7bcc2], [6, 1.5, 0xe7e9ec], [16, 7.9, 0x7a2430], [44, 4.8, 0xd7dadd], [-30, 12.6, 0x3a4048], [-8, 15.4, 0xe7e9ec], [12, 18.2, 0x8b9199], [30, 13.0, 0xd7dadd], [46, 16.0, 0x20252a], [-46, 15.2, 0xb7bcc2], [-18, -1.5, 0xf2f3f5], [27, -1.6, 0xf2f3f5], [0, 14.4, 0x4a6a8a], [-60, 4.9, 0xd7dadd], [-66, 12.8, 0x2b2f35], [60, 7.8, 0xb7bcc2], [66, 15.4, 0xe7e9ec], [-80, 1.6, 0xb7bcc2], [78, 4.9, 0x3a4048], [90, 13.0, 0xe7e9ec]].forEach((c) => car(c[0], c[1], c[2], true));
+  // --- east: open-deck parking garage (x 72..100). The side road runs north along its west face; at the end you turn right into the entrance tunnel (z -38..-30) ---
   const gt = (w, h) => { const t = garageTex.clone(); t.needsUpdate = true; t.repeat.set(w / 8, h / 3.2); return stdMat({ map: t, roughness: 0.9, envMapIntensity: 0.2 }); };
-  mk(new THREE.BoxGeometry(10, 16, 32), gt(32, 16), 45, 8, -24, 0, true); addCol(45, -24, 10, 32, 16); // x 40..50
-  mk(new THREE.BoxGeometry(14, 16, 32), gt(32, 16), 65, 8, -24, 0, true); addCol(65, -24, 14, 32, 16); // x 58..72
-  mk(new THREE.BoxGeometry(8, 12.6, 32), gt(32, 12.6), 54, 9.7, -24, 0, true); // above the entrance (the 8 m x 4 m pocket below it is open ground)
-  bx(54, 1.7, -12.2, 8, 3.4, 0.4, 0x2a2d30); addCol(54, -12.2, 8, 0.4, 3.4); bx(54, 0.03, -10, 8, 0.04, 4, 0x3a3c40); bx(54, 3.45, -8.2, 8.2, 0.2, 0.3, 0xe6b800);
-  mk(new THREE.BoxGeometry(5.2, 19, 6.4), concrete, 42.6, 9.5, -11.2, 0, true); addCol(42.6, -11.2, 5.2, 6.4, 19); bx(40.01, 9.5, -11.2, 0.04, 14, 1.4, 0x9ecbe0); bx(42.6, 9.5, -7.98, 1.4, 14, 0.04, 0x9ecbe0); // stair core with glass strip
-  const gs = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.9), new THREE.MeshBasicMaterial({ map: signTex('P', 'PARKING') })); gs.position.set(54, 4.4, -7.95); world.add(gs);
-  // --- west: grey office block with a dark door, then the overpass with the blue direction sign ---
-  mk(new THREE.BoxGeometry(28, 12, 24), concrete, -58, 6, -26, 0, true); addCol(-58, -26, 28, 24, 12);
-  for (let f = 0; f < 3; f++) bx(-58, 2.4 + f * 3.2, -13.95, 26, 1.2, 0.05, 0x35506b); bx(-58, 1.2, -13.93, 2.6, 2.4, 0.06, 0x14181c); bx(-58, 2.7, -13.2, 4.0, 0.2, 1.6, 0x7d8287);
-  bx(-62, 7.5, 10, 12, 2.0, 24, 0x9a9da1); bx(-62, 8.6, -1.9, 12, 0.5, 0.3, 0x8c8f93); bx(-62, 8.6, 21.9, 12, 0.5, 0.3, 0x8c8f93); [-3.8, 10, 21.6].forEach((z) => { bx(-62, 3.25, z, 1.4, 6.5, 1.4, 0xaeb2b6); addCol(-62, z, 1.6, 1.6, 6.5); }); // overpass deck + pillars
-  bx(-44, 3.5, -4.7, 0.25, 7, 0.25, 0x7d8287); addCol(-44, -4.7, 0.4, 0.4, 7); const os = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.6), new THREE.MeshBasicMaterial({ map: signTex('\uC624\uC0B0 Osan', '\uB3D9\uD0C4\uC2E0\uB3C4\uC2DC Dongtan Newtown') })); os.position.set(-44, 6.0, -4.45); world.add(os);
+  mk(new THREE.BoxGeometry(14, 16, 32), gt(32, 16), 93, 8, -24, 0, true); addCol(93, -24, 14, 32, 16); // x 86..100
+  mk(new THREE.BoxGeometry(14, 16, 22), gt(22, 16), 79, 8, -19, 0, true); addCol(79, -19, 14, 22, 16); // x 72..86, south of the entrance
+  mk(new THREE.BoxGeometry(14, 16, 2), gt(14, 16), 79, 8, -39, 0, true); addCol(79, -39, 14, 2, 16); // x 72..86, north of the entrance
+  mk(new THREE.BoxGeometry(14, 11.8, 8), gt(14, 11.8), 79, 10.1, -34, 0, true); // deck above the entrance tunnel (4.2 m clearance)
+  bx(71.95, 4.3, -34, 0.1, 0.2, 8.2, 0xe6b800); bx(74, 0.6, -30.7, 1.0, 1.2, 1.0, 0x2a2d30); addCol(74, -30.7, 1.0, 1.0, 1.2); bx(73.6, 1.15, -34, 0.1, 0.1, 6.4, 0xe6b800); // entrance trim, ticket booth, boom arm
+  mk(new THREE.BoxGeometry(5.2, 19, 6.4), concrete, 74.6, 9.5, -11.2, 0, true); addCol(74.6, -11.2, 5.2, 6.4, 19); bx(71.99, 9.5, -11.2, 0.04, 14, 1.4, 0x9ecbe0); bx(74.6, 9.5, -7.98, 1.4, 14, 0.04, 0x9ecbe0); // stair core with glass strip
+  const gs = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.9), new THREE.MeshBasicMaterial({ map: signTex('P', 'PARKING') })); gs.position.set(71.9, 5.4, -34); gs.rotation.y = -Math.PI / 2; world.add(gs);
+  // --- west: the small grey office block (half size) with its door onto a wooden landing; wooden stairs run down from it to the sidewalk before the central road ---
+  const wood = [0x8a6238, 0x7d5a34];
+  mk(new THREE.BoxGeometry(14, 12, 12), concrete, -79, 6, -34, 0, true); addCol(-79, -34, 14, 12, 12);
+  for (let f = 0; f < 3; f++) bx(-79, 3.0 + f * 3.0, -27.95, 12.4, 1.2, 0.05, 0x35506b); bx(-79, 2.7, -27.93, 2.6, 2.4, 0.06, 0x14181c); bx(-79, 4.2, -27.2, 4.0, 0.2, 1.6, 0x7d8287);
+  bx(-79, 0.75, -27, 6, 1.5, 2.0, 0x9a6d3f); addCol(-79, -27, 6, 2.0, 1.5, true); bx(-82.05, 1.95, -27, 0.1, 0.9, 2.0, 0x5a3b22); bx(-75.95, 1.95, -27, 0.1, 0.9, 2.0, 0x5a3b22); // landing at door level (1.5 m)
+  for (let i = 0; i < 9; i++) { const zc = -24.9 + 2.2 * i, h = 1.5 - 0.15 * (i + 1); bx(-79, h / 2, zc, 6, h, 2.2, wood[i % 2]); addCol(-79, zc, 6, 2.2, h, true); [-3.05, 3.05].forEach((sx) => bx(-79 + sx, h + 0.45, zc, 0.1, 0.9, 2.2, 0x5a3b22)); } // nine 0.15 m risers down to the sidewalk (z -6.2)
+  // --- west end: an elevated road (viaduct) crossing over the street at the far left, with the crosswalk beneath it ---
+  bx(-94, 7.5, -2, 12, 2.0, 76, 0x9a9da1); bx(-99.75, 8.8, -2, 0.5, 0.6, 76, 0x8c8f93); bx(-88.25, 8.8, -2, 0.5, 0.6, 76, 0x8c8f93); bx(-94, 6.45, -2, 12, 0.1, 76, 0x6f7276);
+  [-22, -8, 10, 31].forEach((z) => { bx(-94, 3.25, z, 1.6, 6.5, 1.6, 0xaeb2b6); addCol(-94, z, 1.8, 1.8, 6.5); }); // pillars
   // --- boundary: construction hoarding around the block, plus a far skyline and tower cranes so there is no void ---
   mk(new THREE.BoxGeometry(0.6, 3.2, ZS - ZN + 1), hoard, -XS - 0.3, 1.6, (ZS + ZN) / 2, 0, true); addCol(-XS - 0.3, (ZS + ZN) / 2, 0.6, ZS - ZN + 1, 3.2);
   mk(new THREE.BoxGeometry(0.6, 3.2, ZS - ZN + 1), hoard, XS + 0.3, 1.6, (ZS + ZN) / 2, 0, true); addCol(XS + 0.3, (ZS + ZN) / 2, 0.6, ZS - ZN + 1, 3.2);
   mk(new THREE.BoxGeometry(XS * 2 + 1.2, 3.2, 0.6), hoard, 0, 1.6, ZS + 0.3, 0, true); addCol(0, ZS + 0.3, XS * 2 + 1.2, 0.6, 3.2);
   mk(new THREE.BoxGeometry(XS * 2 + 1.2, 6, 0.6), hoard, 0, 3, ZN - 0.3, 0, true); addCol(0, ZN - 0.3, XS * 2 + 1.2, 0.6, 6);
   const far = stdMat({ color: 0x8d96a0, roughness: 1, envMapIntensity: 0.1 });
-  [[-96, 70, 24, 46], [-64, 68, 22, 46], [-30, 70, 26, 36], [0, 74, 30, 58], [34, 70, 24, 40], [68, 68, 22, 50], [98, 72, 26, 44], [-100, 20, 20, 44], [-104, -22, 24, 36], [100, 24, 22, 52], [104, -16, 22, 40], [-50, -76, 26, 48], [30, -80, 30, 62], [66, -74, 20, 34]].forEach((b) => mk(new THREE.BoxGeometry(b[2], b[3], b[2]), far, b[0], b[3] / 2, b[1], 0, false));
-  [[-92, 52], [94, -46]].forEach((c) => { bx(c[0], 20, c[1], 0.8, 40, 0.8, 0xe3b21c); bx(c[0] + 8, 40.5, c[1], 22, 0.7, 0.7, 0xe3b21c); bx(c[0] - 5, 40.5, c[1], 8, 0.7, 0.7, 0xe3b21c); bx(c[0] - 6.5, 38.5, c[1], 2.2, 3.2, 1.6, 0x888d92); });
+  [[-130, 70, 24, 46], [-96, 70, 24, 46], [-64, 68, 22, 46], [-30, 70, 26, 36], [0, 74, 30, 58], [34, 70, 24, 40], [68, 68, 22, 50], [98, 72, 26, 44], [130, 68, 24, 52], [-126, 20, 20, 44], [-130, -22, 24, 36], [128, 24, 22, 52], [130, -16, 22, 40], [-80, -76, 26, 48], [-30, -80, 26, 40], [30, -80, 30, 62], [90, -76, 24, 44]].forEach((b) => mk(new THREE.BoxGeometry(b[2], b[3], b[2]), far, b[0], b[3] / 2, b[1], 0, false));
+  [[-118, 52], [120, -46]].forEach((c) => { bx(c[0], 20, c[1], 0.8, 40, 0.8, 0xe3b21c); bx(c[0] + 8, 40.5, c[1], 22, 0.7, 0.7, 0xe3b21c); bx(c[0] - 5, 40.5, c[1], 8, 0.7, 0.7, 0xe3b21c); bx(c[0] - 6.5, 38.5, c[1], 2.2, 3.2, 1.6, 0x888d92); });
   // --- spawn gates: road ends, tower lobby, garage entrance, office block door, south park ---
   GATES.length = 0;
-  [[-70, 4.5], [-70, 15.5], [70, 4.5], [70, 15.5], [0, -12], [54, -9.8], [-58, -12.4], [-40, 31], [0, 31], [40, 31]].forEach((g) => GATES.push(g));
+  [[-98, 4.5], [-98, 15.5], [98, 4.5], [98, 15.5], [0, -12], [79, -34], [-79, -12], [-60, 31], [0, 31], [60, 31]].forEach((g) => GATES.push(g));
   const gm = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a1a, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
   GATES.forEach((g) => { const s = new THREE.Sprite(gm); s.scale.set(4, 4, 1); s.position.set(g[0], 2.4, g[1]); world.add(s); });
   B.build(stdMat({ color: 0xffffff, roughness: 0.85, envMapIntensity: 0.3 }), true);
@@ -1035,11 +1048,11 @@ const MAPS_ALL = {
   office2: { name: 'NOVA Tower 7th Floor', tag: 'Night \u00b7 open-plan office', half: 36, xs: 30, start: [0, 24], build: buildOffice2, ground: [carpetTex, 0xffffff],
     sky: { hor: [0.07, 0.08, 0.1], top: [0.04, 0.045, 0.06], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.15, 0.95, 0.2], fog: 0.015,
     hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 }, // second office map: shown as a map type under the DSR button (not a menu tile of its own)
-  tower: { name: 'DSR Tower Front', tag: 'Overcast \u00b7 street in front of the tower', half: 72, xs: 72, zs: 38, zc: -2, shadowR: 84, start: [0, -8], startYaw: Math.PI, build: buildTower, ground: [null, 0x8a8f94],
+  tower: { name: 'DSR Tower Front', tag: 'Overcast \u00b7 street in front of the tower', half: 100, xs: 100, zs: 38, zc: -2, shadowR: 108, start: [0, -8], startYaw: Math.PI, build: buildTower, ground: [null, 0x8a8f94],
     sky: { hor: [0.66, 0.7, 0.79], top: [0.42, 0.5, 0.68], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.4, 0.85, 0.3], fog: 0.0065,
     hemi: [0xe6eeff, 0x80858c, 1.05], sun: [0xf2f4ff, 0.75], exp: 1.0,
-    mini: [[-72, 72, -3, 20.5, 'rgba(80,82,88,.55)'], [-72, 72, -6, -3, 'rgba(190,192,196,.35)'], [-72, 72, 20.5, 24, 'rgba(190,192,196,.3)'], [-24, 24, -14, -6, 'rgba(95,138,69,.35)'], [-72, 72, 26, 36, 'rgba(95,138,69,.3)'],
-      [-39, -23, -40, -24, 'rgba(120,150,185,.6)'], [-8, 8, -40, -24, 'rgba(120,150,185,.6)'], [23, 39, -40, -24, 'rgba(120,150,185,.6)'], [-39, 39, -24, -14, 'rgba(120,150,185,.4)'], [40, 72, -40, -8, 'rgba(170,172,172,.55)'], [-72, -44, -38, -14, 'rgba(165,169,173,.5)'], [-68, -56, -2, 22, 'rgba(150,150,155,.35)']] } // third map: the street in front of the DSR tower (map type under the DSR button)
+    mini: [[-100, 100, -3, 20.5, 'rgba(80,82,88,.55)'], [-100, 100, -6, -3, 'rgba(190,192,196,.35)'], [-100, 100, 20.5, 24, 'rgba(190,192,196,.3)'], [-24, 24, -14, -6, 'rgba(95,138,69,.35)'], [-100, 100, 26, 36, 'rgba(95,138,69,.3)'],
+      [-63, -31, -40, -24, 'rgba(120,150,185,.6)'], [-16, 16, -40, -24, 'rgba(120,150,185,.6)'], [31, 63, -40, -24, 'rgba(120,150,185,.6)'], [-63, 63, -24, -14, 'rgba(120,150,185,.4)'], [72, 100, -40, -8, 'rgba(170,172,172,.55)'], [64, 71, -38, -3, 'rgba(80,82,88,.55)'], [71, 86, -38, -30, 'rgba(60,62,66,.6)'], [-86, -72, -40, -28, 'rgba(165,169,173,.5)'], [-82, -76, -28, -6, 'rgba(150,110,70,.55)'], [-100, -88, -40, 36, 'rgba(150,150,155,.3)']] } // third map: the street in front of the DSR tower (map type under the DSR button)
 };
 const MAPS = { office: MAPS_ALL.office, training: MAPS_ALL.training, sandbag: MAPS_ALL.sandbag }; // order = order of the menu buttons; first = default
 let curMap = 'office';
@@ -1629,12 +1642,18 @@ function feed(t) { const f = $('feed'); f.textContent = t; clearTimeout(feed.t);
 /* ---------------- collisions ---------------- */
 function pushOut(o, r, y) {
   for (let k = 0; k < COL.length; k++) {
-    const c = COL[k]; if (y != null && c.h < 0.95 && y > c.h) continue;
+    const c = COL[k]; if (c.st && y == null) continue; if (y != null && c.h <= CLIMB_MAX && y >= c.h - MANTLE) continue; // feet within a mantle step of the top of a low obstacle (rail, sofa, desk, meeting table, bar table, cubicle divider): climb onto it and walk over/along it
     const cx = clamp(o.x, c.x0, c.x1), cz = clamp(o.z, c.z0, c.z1), dx = o.x - cx, dz = o.z - cz, d2 = dx * dx + dz * dz;
     if (d2 >= r * r) continue;
     if (d2 > 1e-8) { const d = Math.sqrt(d2); o.x += dx / d * (r - d); o.z += dz / d * (r - d); }
     else { const l = o.x - c.x0, rr = c.x1 - o.x, t = o.z - c.z0, b = c.z1 - o.z, m = Math.min(l, rr, t, b); if (m === l) o.x = c.x0 - r; else if (m === rr) o.x = c.x1 + r; else if (m === t) o.z = c.z0 - r; else o.z = c.z1 + r; }
   }
+}
+const CLIMB_MAX = 1.6, MANTLE = 0.3; // climbable obstacles are up to 1.6 m tall (a jump from the floor reaches ~1.14 m, so floor-level climbs top out near 1.4 m; cubicle dividers need a jump from a desk top); a top counts once the feet are within MANTLE of it
+function floorAt(x, z, y, r) { // height of the highest low obstacle (<= CLIMB_MAX) the feet can stand on right here; only tops within a mantle step of the feet count
+  let f = 0;
+  for (let k = 0; k < COL.length; k++) { const c = COL[k]; if (c.h > CLIMB_MAX || c.h <= f || c.h > y + MANTLE) continue; const cx = clamp(x, c.x0, c.x1), cz = clamp(z, c.z0, c.z1), dx = x - cx, dz = z - cz; if (dx * dx + dz * dz < r * r) f = c.h; }
+  return f;
 }
 function blockedAt(x, z, r) {
   for (let k = 0; k < COL.length; k++) { const c = COL[k], cx = clamp(x, c.x0, c.x1), cz = clamp(z, c.z0, c.z1), dx = x - cx, dz = z - cz; if (dx * dx + dz * dz < r * r) return true; }
@@ -1663,7 +1682,7 @@ function navBuild() {
   const cs = NAV.cs, ext = HALF + 2, n = Math.ceil(ext * 2 / cs); NAV.n = n; NAV.ox = -ext; NAV.oz = -ext;
   NAV.blk = new Uint8Array(n * n); NAV.dist = new Int32Array(n * n); NAV.q = new Int32Array(n * n); NAV.pi = NAV.pj = -1; NAV.t = 0;
   for (let k = 0; k < COL.length; k++) {
-    const c = COL[k];
+    const c = COL[k]; if (c.st) continue;
     const i0 = Math.max(0, Math.ceil((c.x0 - NAV.r - NAV.ox) / cs - 0.5)), i1 = Math.min(n - 1, Math.floor((c.x1 + NAV.r - NAV.ox) / cs - 0.5));
     const j0 = Math.max(0, Math.ceil((c.z0 - NAV.r - NAV.oz) / cs - 0.5)), j1 = Math.min(n - 1, Math.floor((c.z1 + NAV.r - NAV.oz) / cs - 0.5));
     for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) NAV.blk[j * n + i] = 1;
@@ -2471,7 +2490,7 @@ function updatePlayer(dt) {
   const tvx = (fx * nf + rx * ns) * spd, tvz = (fz * nf + rz * ns) * spd, k = 1 - Math.exp(-(P.ground ? 12 : 2.5) * dt);
   P.vx += (tvx - P.vx) * k; P.vz += (tvz - P.vz) * k;
   if ((K(' ') || tch.jump) && P.ground) { P.vy = 6.4; P.ground = false; }
-  P.vy -= 18 * dt; P.y += P.vy * dt; if (P.y <= 0) { P.y = 0; P.vy = 0; P.ground = true; }
+  P.vy -= 18 * dt; P.y += P.vy * dt; { const fl = floorAt(P.x, P.z, P.y, 0.38); if (P.y <= fl) { P.y = fl; P.vy = 0; P.ground = true; } else P.ground = false; } // land on the floor or on top of a low obstacle; walking off an edge makes you fall
   P.x += P.vx * dt; P.z += P.vz * dt; pushOut(P, 0.4, P.y);
   if (curMap === 'sandbag') for (const z of TR.list) if (z) { const dx = P.x - z.x, dz = P.z - z.z, d = Math.hypot(dx, dz) || 1, r = 0.55 * z.sc + 0.4; if (d < r) { P.x = z.x + dx / d * r; P.z = z.z + dz / d * r; } }
   P.speed = Math.hypot(P.vx, P.vz); P.sprint = sprint;
