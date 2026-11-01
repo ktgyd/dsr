@@ -962,7 +962,7 @@ function buildTower() {
   const cherry = (x, z, s) => { bx(x, 1.3 * s, z, 0.4 * s, 2.6 * s, 0.4 * s, 0x6b4a3a); bx(x, 3.4 * s, z, 3.6 * s, 1.6 * s, 3.6 * s, 0xe9b8cc); bx(x, 4.6 * s, z, 2.8 * s, 1.2 * s, 2.8 * s, 0xf1c9d9); bx(x + 0.5 * s, 5.5 * s, z, 1.6 * s, 0.9 * s, 1.6 * s, 0xf6dbe5); addCol(x, z, 0.6 * s, 0.6 * s, 3); };
   for (let x = -96; x <= 96; x += 8.5) { const cx = x + rand(-0.8, 0.8), cs = rand(0.95, 1.15); if (x > -86) cherry(cx, 23.4, cs); }
   for (let x = -96; x <= 96; x += 11) { const cx = x + rand(-1, 1), cs = rand(0.9, 1.1); if (x > -86) cherry(cx, 28.5, cs); }
-  [-72, -68, -64, 80, 88, 96].forEach((x) => cherry(x + rand(-0.5, 0.5), -5.3, 1.0)); // a few cherries on the tower-side sidewalk
+  [-68, -64, 80, 88, 96].forEach((x) => cherry(x + rand(-0.5, 0.5), -5.3, 1.0)); // a few cherries on the tower-side sidewalk
   bx(22.5, 2.55, -5.2, 5.4, 0.12, 2.0, 0x7d8287); [20, 25].forEach((x) => { bx(x, 1.25, -5.9, 0.12, 2.5, 0.12, 0x7d8287); addCol(x, -5.9, 0.3, 0.3, 2.5); }); bx(22.5, 1.2, -6.0, 4.6, 2.2, 0.05, 0x9ecbe0); bx(22.5, 0.5, -5.5, 3.2, 0.1, 0.5, 0x7a5636); addCol(22.5, -5.5, 3.2, 0.6, 0.5);
   [[-12, 33, 0x7a5636], [12, 33, 0x7a5636], [-30, 25.6, 0x7a5636], [30, 25.6, 0x7a5636]].forEach((b) => { bx(b[0], 0.42, b[1], 1.8, 0.1, 0.5, b[2]); bx(b[0], 0.7, b[1] + 0.22, 1.8, 0.45, 0.08, b[2]); addCol(b[0], b[1], 1.9, 0.6, 0.7); });
   // --- stranded cars (cover): body, glass cabin, wheels ---
@@ -978,11 +978,15 @@ function buildTower() {
   mk(new THREE.BoxGeometry(5.2, 19, 6.4), concrete, 74.6, 9.5, -11.2, 0, true); addCol(74.6, -11.2, 5.2, 6.4, 19); bx(71.99, 9.5, -11.2, 0.04, 14, 1.4, 0x9ecbe0); bx(74.6, 9.5, -7.98, 1.4, 14, 0.04, 0x9ecbe0); // stair core with glass strip
   const gs = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 0.9), new THREE.MeshBasicMaterial({ map: signTex('P', 'PARKING') })); gs.position.set(71.9, 5.4, -34); gs.rotation.y = -Math.PI / 2; world.add(gs);
   // --- west: the small grey office block (half size) with its door onto a wooden landing; wooden stairs run down from it to the sidewalk before the central road ---
-  const wood = [0x8a6238, 0x7d5a34];
-  mk(new THREE.BoxGeometry(14, 12, 12), concrete, -79, 6, -34, 0, true); addCol(-79, -34, 14, 12, 12);
-  for (let f = 0; f < 3; f++) bx(-79, 3.0 + f * 3.0, -27.95, 12.4, 1.2, 0.05, 0x35506b); bx(-79, 2.7, -27.93, 2.6, 2.4, 0.06, 0x14181c); bx(-79, 4.2, -27.2, 4.0, 0.2, 1.6, 0x7d8287);
-  bx(-79, 0.75, -27, 6, 1.5, 2.0, 0x9a6d3f); addCol(-79, -27, 6, 2.0, 1.5, true); bx(-82.05, 1.95, -27, 0.1, 0.9, 2.0, 0x5a3b22); bx(-75.95, 1.95, -27, 0.1, 0.9, 2.0, 0x5a3b22); // landing at door level (1.5 m)
-  for (let i = 0; i < 9; i++) { const zc = -24.9 + 2.2 * i, h = 1.5 - 0.15 * (i + 1); bx(-79, h / 2, zc, 6, h, 2.2, wood[i % 2]); addCol(-79, zc, 6, 2.2, h, true); [-3.05, 3.05].forEach((sx) => bx(-79 + sx, h + 0.45, zc, 0.1, 0.9, 2.2, 0x5a3b22)); } // nine 0.15 m risers down to the sidewalk (z -6.2)
+  const wood = [0x8a6238, 0x7d5a34], OX = -75; // office block x -87..-63, flush against tower A; the stairs run down from its door (x -78..-72)
+  mk(new THREE.BoxGeometry(24, 12, 12), concrete, OX, 6, -34, 0, true); addCol(OX, -34, 24, 12, 12);
+  for (let f = 0; f < 3; f++) bx(OX, 3.0 + f * 3.0, -27.95, 22.4, 1.2, 0.05, 0x35506b); bx(OX, 2.7, -27.93, 2.6, 2.4, 0.06, 0x14181c); bx(OX, 4.2, -27.2, 4.0, 0.2, 1.6, 0x7d8287);
+  bx(OX, 0.75, -27, 6, 1.5, 2.0, 0x9a6d3f); addCol(OX, -27, 6, 2.0, 1.5, true); bx(OX - 3.05, 1.95, -27, 0.1, 0.9, 2.0, 0x5a3b22); bx(OX + 3.05, 1.95, -27, 0.1, 0.9, 2.0, 0x5a3b22); // landing at door level (1.5 m)
+  for (let i = 0; i < 6; i++) { const zc = -24.9 + 2.2 * i, h = 1.5 - 0.15 * (i + 1); bx(OX, h / 2, zc, 6, h, 2.2, wood[i % 2]); addCol(OX, zc, 6, 2.2, h, true); [-3.05, 3.05].forEach((sx) => bx(OX + sx, h + 0.45, zc, 0.1, 0.9, 2.2, 0x5a3b22)); } // flight 1: six 0.15 m risers south from the landing (z -26..-12.8)
+  bx(-75, 0.225, -10.5, 6, 0.45, 4.6, 0x9a6d3f); addCol(-75, -10.5, 6, 4.6, 0.45, true); // turning platform (0.45 m): the stairs bend west here, well before the sidewalk
+  [[-79.1, 0.3, 0x8a6238], [-81.3, 0.15, 0x7d5a34]].forEach((q) => { bx(q[0], q[1] / 2, -10.5, 2.2, q[1], 4.6, q[2]); addCol(q[0], -10.5, 2.2, 4.6, q[1], true); }); // flight 2: two more risers heading west
+  bx(-87.45, 0.08, -10.5, 10.1, 0.16, 4.6, 0x8a6238); addCol(-87.45, -10.5, 10.1, 4.6, 0.16, true); // wooden walkway west across the plaza (x -92.5..-82.4)
+  bx(-90.5, 0.08, -6.0, 4, 0.16, 4.8, 0x8a6238); addCol(-90.5, -6.0, 4, 4.8, 0.16, true); for (let x = -92.2; x < -82.4; x += 1.5) bx(x, 0.165, -10.5, 0.05, 0.01, 4.6, 0x5a3b22); // ...then south along the crosswalk (x -92.5..-88.5) to the road; the sidewalk itself stays clear
   // --- west end: an elevated road (viaduct) crossing over the street at the far left, with the crosswalk beneath it ---
   bx(-94, 7.5, -2, 12, 2.0, 76, 0x9a9da1); bx(-99.75, 8.8, -2, 0.5, 0.6, 76, 0x8c8f93); bx(-88.25, 8.8, -2, 0.5, 0.6, 76, 0x8c8f93); bx(-94, 6.45, -2, 12, 0.1, 76, 0x6f7276);
   [-22, -8, 10, 31].forEach((z) => { bx(-94, 3.25, z, 1.6, 6.5, 1.6, 0xaeb2b6); addCol(-94, z, 1.8, 1.8, 6.5); }); // pillars
@@ -996,7 +1000,7 @@ function buildTower() {
   [[-118, 52], [120, -46]].forEach((c) => { bx(c[0], 20, c[1], 0.8, 40, 0.8, 0xe3b21c); bx(c[0] + 8, 40.5, c[1], 22, 0.7, 0.7, 0xe3b21c); bx(c[0] - 5, 40.5, c[1], 8, 0.7, 0.7, 0xe3b21c); bx(c[0] - 6.5, 38.5, c[1], 2.2, 3.2, 1.6, 0x888d92); });
   // --- spawn gates: road ends, tower lobby, garage entrance, office block door, south park ---
   GATES.length = 0;
-  [[-98, 4.5], [-98, 15.5], [98, 4.5], [98, 15.5], [0, -12], [79, -34], [-79, -12], [-60, 31], [0, 31], [60, 31]].forEach((g) => GATES.push(g));
+  [[-98, 4.5], [-98, 15.5], [98, 4.5], [98, 15.5], [0, -12], [79, -34], [-69, -12], [-60, 31], [0, 31], [60, 31]].forEach((g) => GATES.push(g));
   const gm = new THREE.SpriteMaterial({ map: glowTex, color: 0xff2a1a, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
   GATES.forEach((g) => { const s = new THREE.Sprite(gm); s.scale.set(4, 4, 1); s.position.set(g[0], 2.4, g[1]); world.add(s); });
   B.build(stdMat({ color: 0xffffff, roughness: 0.85, envMapIntensity: 0.3 }), true);
@@ -1052,7 +1056,7 @@ const MAPS_ALL = {
     sky: { hor: [0.66, 0.7, 0.79], top: [0.42, 0.5, 0.68], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.4, 0.85, 0.3], fog: 0.0065,
     hemi: [0xe6eeff, 0x80858c, 1.05], sun: [0xf2f4ff, 0.75], exp: 1.0,
     mini: [[-100, 100, -3, 20.5, 'rgba(80,82,88,.55)'], [-100, 100, -6, -3, 'rgba(190,192,196,.35)'], [-100, 100, 20.5, 24, 'rgba(190,192,196,.3)'], [-24, 24, -14, -6, 'rgba(95,138,69,.35)'], [-100, 100, 26, 36, 'rgba(95,138,69,.3)'],
-      [-63, -31, -40, -24, 'rgba(120,150,185,.6)'], [-16, 16, -40, -24, 'rgba(120,150,185,.6)'], [31, 63, -40, -24, 'rgba(120,150,185,.6)'], [-63, 63, -24, -14, 'rgba(120,150,185,.4)'], [72, 100, -40, -8, 'rgba(170,172,172,.55)'], [64, 71, -38, -3, 'rgba(80,82,88,.55)'], [71, 86, -38, -30, 'rgba(60,62,66,.6)'], [-86, -72, -40, -28, 'rgba(165,169,173,.5)'], [-82, -76, -28, -6, 'rgba(150,110,70,.55)'], [-100, -88, -40, 36, 'rgba(150,150,155,.3)']] } // third map: the street in front of the DSR tower (map type under the DSR button)
+      [-63, -31, -40, -24, 'rgba(120,150,185,.6)'], [-16, 16, -40, -24, 'rgba(120,150,185,.6)'], [31, 63, -40, -24, 'rgba(120,150,185,.6)'], [-63, 63, -24, -14, 'rgba(120,150,185,.4)'], [72, 100, -40, -8, 'rgba(170,172,172,.55)'], [64, 71, -38, -3, 'rgba(80,82,88,.55)'], [71, 86, -38, -30, 'rgba(60,62,66,.6)'], [-87, -63, -40, -28, 'rgba(165,169,173,.5)'], [-78, -72, -28, -12.8, 'rgba(150,110,70,.55)'], [-92.5, -72, -12.8, -8.2, 'rgba(150,110,70,.55)'], [-92.5, -88.5, -8.2, -3.6, 'rgba(150,110,70,.55)'], [-100, -88, -40, 36, 'rgba(150,150,155,.3)']] } // third map: the street in front of the DSR tower (map type under the DSR button)
 };
 const MAPS = { office: MAPS_ALL.office, training: MAPS_ALL.training, sandbag: MAPS_ALL.sandbag }; // order = order of the menu buttons; first = default
 let curMap = 'office';
