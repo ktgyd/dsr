@@ -214,6 +214,7 @@ body:has(#menu:not([hidden])) #touch { display: none !important; } /* on-screen 
 .rlist li small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rlist li b { font-family: var(--f-mono); font-weight: 600; font-variant-numeric: tabular-nums; }
 #villains { align-items: center; justify-content: center; background: rgba(5,7,10,.7); }
+#villains .btn:disabled { opacity: .35; }
 #villains .panel { max-height: 100%; box-sizing: border-box; width: min(100%, 540px); }
 .vlist { list-style: none; margin: 0; padding: 0 8px 0 0; display: flex; flex-direction: column; gap: 6px; flex: 1 1 auto; min-height: 0; overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch; scrollbar-width: auto; scrollbar-color: var(--amber) rgba(255,255,255,.1); }
 .vlist::-webkit-scrollbar { width: 20px; } .vlist::-webkit-scrollbar-track { background: rgba(255,255,255,.12); border-radius: 10px; } .vlist::-webkit-scrollbar-thumb { background: var(--amber); border-radius: 10px; border: 4px solid rgba(20,22,26,.9); min-height: 56px; }
@@ -294,7 +295,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 </section>
 
 <section id="villains" class="screen inset" hidden>
-  <div class="panel card"><p class="kicker">Know your enemy</p><h1 style="font-size:clamp(30px,6vw,52px)">Villain List</h1><ul class="vlist" id="vList"></ul><p class="vhint" id="vHint"></p><div class="row"><button class="btn ghost" id="vAll">All on</button><button class="btn ghost" id="vReset">Reset names</button><button class="btn ghost" id="vClose">Close</button></div></div>
+  <div class="panel card"><p class="kicker">Know your enemy</p><h1 style="font-size:clamp(30px,6vw,52px)">Villain List</h1><ul class="vlist" id="vList"></ul><p class="vhint" id="vHint"></p><div class="row"><button class="btn ghost" id="vSave">Save</button><button class="btn ghost" id="vLoad">Load</button></div><div class="row"><button class="btn ghost" id="vAll">All on</button><button class="btn ghost" id="vNone">All off</button><button class="btn ghost" id="vReset">Reset names</button><button class="btn ghost" id="vClose">Close</button></div></div>
 </section>
 
 <section id="over" class="screen inset" hidden>
@@ -2511,7 +2512,7 @@ function renderVillains() {
 }
 function vCount() { const n = VILLAIN_ORDER.filter((q) => TYPES[q]).length, on = VILLAIN_ORDER.filter((q) => TYPES[q] && !offTypes.has(q)).length; $('vHint').textContent = on + ' of ' + n + ' villains on \u00b7 Untick one to remove it from the game \u00b7 Tap a name to rename'; }
 function setVillainOn(t, on) { if (on) offTypes.delete(t); else offTypes.add(t); saveOff(); TRAIN_TYPES = onList(TRAIN_ALL); MENU_TYPES = onList(MENU_ALL); WAVE_TYPES = onList(WAVE_ALL); }
-function openVillains() { villainsOpen = true; $('villains').hidden = false; renderVillains(); }
+function openVillains() { villainsOpen = true; $('villains').hidden = false; renderVillains(); presetUi(); }
 function closeVillains() { villainsOpen = false; $('villains').hidden = true; }
 {
   const vb = document.createElement('button'); vb.type = 'button'; vb.className = 'mapb';
@@ -2520,6 +2521,27 @@ function closeVillains() { villainsOpen = false; $('villains').hidden = true; }
 }
 $('vClose').addEventListener('click', closeVillains);
 $('vAll').addEventListener('click', () => { if (!offTypes.size) return; offTypes.clear(); saveOff(); TRAIN_TYPES = TRAIN_ALL.slice(); MENU_TYPES = MENU_ALL.slice(); WAVE_TYPES = WAVE_ALL.slice(); renderVillains(); });
+$('vNone').addEventListener('click', () => { const keep = VILLAIN_ORDER[0]; // everything off except the first one in the list (후루)
+  offTypes = new Set(VILLAIN_ORDER.filter((q) => TYPES[q] && q !== keep)); saveOff(); TRAIN_TYPES = onList(TRAIN_ALL); MENU_TYPES = onList(MENU_ALL); WAVE_TYPES = onList(WAVE_ALL); renderVillains(); });
+/* Save / Load: a separate saved copy of the current names + on/off ticks, kept on this device only (the live edits above are saved automatically on their own) */
+const PRESET_KEY = 'officesniper.villainPreset';
+function readPreset() { try { const p = JSON.parse(localStorage.getItem(PRESET_KEY)); if (p && typeof p === 'object' && p.names && typeof p.names === 'object' && Array.isArray(p.off)) return p; } catch (e) { /* none */ } return null; }
+function presetUi() { const p = readPreset(), b = $('vLoad'); b.disabled = !p; b.textContent = p && p.t ? 'Load \u00b7 ' + new Date(p.t).toLocaleString([], { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Load'; }
+$('vSave').addEventListener('click', () => {
+  if (readPreset() && !confirm('Replace the saved villain set with the current names and ticks?')) return;
+  try { localStorage.setItem(PRESET_KEY, JSON.stringify({ names: customNames, off: [...offTypes], t: Date.now() })); $('vHint').textContent = 'Saved \u00b7 names and ticks are stored on this device'; } catch (e) { $('vHint').textContent = 'Could not save on this device'; }
+  presetUi();
+});
+$('vLoad').addEventListener('click', () => {
+  const p = readPreset(); if (!p) return;
+  if (!confirm('Load the saved villain set? Your current names and ticks will be replaced.')) return;
+  customNames = {};
+  for (const k in ZOMBIE_NAMES_DEFAULT) { const nm = typeof p.names[k] === 'string' ? p.names[k].trim().slice(0, 14) : ''; if (nm && nm !== ZOMBIE_NAMES_DEFAULT[k]) { ZOMBIE_NAMES[k] = nm; customNames[k] = nm; } else ZOMBIE_NAMES[k] = ZOMBIE_NAMES_DEFAULT[k]; refreshTag(k); }
+  saveNames();
+  offTypes = new Set(p.off.filter((q) => typeof q === 'string' && TYPES[q])); if (!VILLAIN_ORDER.some((q) => TYPES[q] && !offTypes.has(q))) offTypes.clear();
+  saveOff(); TRAIN_TYPES = onList(TRAIN_ALL); MENU_TYPES = onList(MENU_ALL); WAVE_TYPES = onList(WAVE_ALL);
+  renderVillains(); $('vHint').textContent = 'Loaded the saved villain set';
+});
 $('vReset').addEventListener('click', () => { if (!Object.keys(customNames).length) return; if (confirm('Reset all villain names to the originals?')) { resetZombieNames(); renderVillains(); } });
 $('vList').addEventListener('touchmove', (e) => { e.stopPropagation(); }, { passive: true });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && villainsOpen) closeVillains(); });
