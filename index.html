@@ -222,6 +222,9 @@ body:has(#menu:not([hidden])) #touch { display: none !important; } /* on-screen 
 .vlist li { padding: 8px 10px; border: 1px solid var(--line); background: rgba(255,255,255,.04); display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; }
 .vlist .vn { font-family: var(--f-display); font-weight: 800; font-size: 18px; letter-spacing: .06em; }
 .vlist .vs { font-family: var(--f-mono); font-size: 11px; color: var(--amber); text-align: right; white-space: nowrap; }
+.vlist .vnr { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.vlist .vck { flex: 0 0 auto; width: 24px; height: 24px; margin: 0; accent-color: var(--amber); cursor: pointer; }
+.vlist li.voff { opacity: .45; } .vlist li.voff .vn { text-decoration: line-through; }
 .vlist .vn.vedit { cursor: pointer; justify-self: start; border-bottom: 1px dashed rgba(255,255,255,.35); }
 .vlist .vin { font-family: var(--f-display); font-weight: 800; font-size: 16px; width: 100%; box-sizing: border-box; background: rgba(0,0,0,.45); color: #fff; border: 1px solid var(--amber); border-radius: 0; padding: 3px 6px; outline: none; }
 .vlist small { grid-column: 2 / -1; color: var(--muted); font-size: 12px; }
@@ -291,7 +294,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 </section>
 
 <section id="villains" class="screen inset" hidden>
-  <div class="panel card"><p class="kicker">Know your enemy</p><h1 style="font-size:clamp(30px,6vw,52px)">Villain List</h1><ul class="vlist" id="vList"></ul><p class="vhint" id="vHint"></p><div class="row"><button class="btn ghost" id="vReset">Reset names</button><button class="btn ghost" id="vClose">Close</button></div></div>
+  <div class="panel card"><p class="kicker">Know your enemy</p><h1 style="font-size:clamp(30px,6vw,52px)">Villain List</h1><ul class="vlist" id="vList"></ul><p class="vhint" id="vHint"></p><div class="row"><button class="btn ghost" id="vAll">All on</button><button class="btn ghost" id="vReset">Reset names</button><button class="btn ghost" id="vClose">Close</button></div></div>
 </section>
 
 <section id="over" class="screen inset" hidden>
@@ -1013,13 +1016,18 @@ function buildTower() {
 /* ---- map: Training Range (one big DSR meeting room; the player cannot move) ---- */
 const TR = { pz: -2.5, slots: [[-2.6, -15.5], [0, -15.5], [2.6, -15.5]], list: [], last: [], t: [0, 0, 0] }, TRAIN_HITS = 5, TRAIN_DIST = 10; // Training Range: player-to-zombie distance in metres
 const isTrain = () => curMap === 'training' || curMap === 'sandbag', trainHits = () => curMap === 'sandbag' ? 8 : TRAIN_HITS;
-const TRAIN_TYPES = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
+const OFF_KEY = 'officesniper.off'; // villains switched off in the Villain List (kept on this device only): they no longer spawn anywhere
+let offTypes = new Set(); try { const a = JSON.parse(localStorage.getItem(OFF_KEY)); if (Array.isArray(a)) offTypes = new Set(a.filter((k) => typeof k === 'string')); } catch (e) { offTypes = new Set(); }
+function saveOff() { try { if (offTypes.size) localStorage.setItem(OFF_KEY, JSON.stringify([...offTypes])); else localStorage.removeItem(OFF_KEY); } catch (e) { /* storage unavailable */ } }
+const TRAIN_ALL = ['runner', 'brute', 'crawler', 'spitter', 'bloater', 'riot', 'mukking', 'godu', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
+const onList = (all) => { const r = all.filter((t) => !offTypes.has(t)); return r.length ? r : all.slice(); }; // never empty: if everything is off, everything is on
+let TRAIN_TYPES = onList(TRAIN_ALL);
 let sbLayout = 'front'; // Sandbag layout: 'front' = 3 random targets ahead, 'line' = every zombie kneeling in a row along the left wall
 try { const sv = localStorage.getItem('officesniper.sbLayout'); if (sv === 'front' || sv === 'line') sbLayout = sv; } catch (e) { /* storage unavailable */ }
 const sbLine = () => curMap === 'sandbag' && sbLayout === 'line';
 const trainCount = () => sbLine() ? TRAIN_TYPES.length : 3;
 function trainSlot(i) { // -> [x, z, facing]
-  if (sbLine()) { const n = TRAIN_TYPES.length, z0 = -15.6, z1 = 15.6; return [-7.4, z0 + (z1 - z0) * i / (n - 1), Math.PI / 2]; } // left side, facing the room (+x)
+  if (sbLine()) { const n = TRAIN_TYPES.length, z0 = -15.6, z1 = 15.6; return [-7.4, z0 + (z1 - z0) * (n > 1 ? i / (n - 1) : 0.5), Math.PI / 2]; } // left side, facing the room (+x)
   return [TR.slots[i][0], curMap === 'sandbag' ? TR.slots[i][1] : TR.pz - TRAIN_DIST, 0];
 }
 function buildTraining() {
@@ -1464,7 +1472,7 @@ const dressMat = new THREE.MeshStandardMaterial({ color: 0xf4f1ea, roughness: 0.
 TYPES.ongmani = Object.assign({}, TYPES.johnson, { scale: 1.33, gorilla: false, lean: 0.08, armX: 0.27, skin: undefined, cloth: dressMat, dress: true, glove: true }); // johnson's stats but smaller, with normal walker skin (random skin tone), in a white wedding dress
 const bullMat = new THREE.MeshStandardMaterial({ color: 0x6a3d20, roughness: 0.85 }), hornMat = new THREE.MeshStandardMaterial({ color: 0xe8e0c8, roughness: 0.5 }), ringMat = new THREE.MeshStandardMaterial({ color: 0xd9b23a, metalness: 0.8, roughness: 0.3 }), muzzleMat = new THREE.MeshStandardMaterial({ color: 0xc89a86, roughness: 0.8 });
 TYPES.sosung = { hp: 280, speed: 2.5, dmg: 24, scale: 1.15, score: 320, lean: 0, pose: 'heavy', legAmp: 0.75, knee: 0.5, jaw: 0.2, bald: true, bull: true, skin: bullMat, cloth: bullMat, eye: eyeRed, headScale: 1.5, hit: { head: [0.95, 1.0, 0.36], body: [[0.45, 0.98, 0.5], [-0.05, 0.98, 0.55], [-0.55, 0.98, 0.45]] } }; // bull: four-legged bull body with horns
-const MENU_TYPES = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung'];
+const MENU_ALL = ['brute', 'riot', 'godu', 'bloater', 'spitter', 'crawler', 'runner', 'mukking', 'huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'johnson', 'dongmin', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung']; let MENU_TYPES = onList(MENU_ALL);
 const enemies = [], projectiles = [], NADES = [];
 const boomLight = new THREE.PointLight(0x9cff4a, 0, 26, 2); scene.add(boomLight); let boomT = 0;
 const poolGeo = new THREE.CircleGeometry(1, 18).rotateX(-Math.PI / 2), pools = []; let poolI = 0;
@@ -1947,13 +1955,13 @@ function updatePickups(dt) {
 /* ---------------- waves ---------------- */
 function aliveCount() { let n = 0; for (const e of enemies) if (!e.dead && !e.idle) n++; return n; }
 function startWave(n) {
-  W.n = n; W.toSpawn = WAVE_TYPES.length - 4 + n * 4; W.queue = waveQueue(); W.spawnT = 2.2; W.state = 'active'; // wave 1 = one of every type (17), +4 more each wave
+  W.n = n; W.toSpawn = WAVE_ALL.length - 4 + n * 4; W.queue = waveQueue(); W.spawnT = 2.2; W.state = 'active'; // wave 1 = 20 zombies (the count no longer depends on how many types are switched on), +4 more each wave
   toast('Wave ' + n, n === 1 ? 'Hold the floor' : 'They are coming faster', 2000);
 }
-const WAVE_TYPES = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'mukking', 'godu', 'brute', 'spitter', 'bloater', 'johnson', 'dongmin', 'riot', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung']; // every zombie type is in play from wave 1
+const WAVE_ALL = ['huru', 'judalgeun', 'opl', 'jjiru', 'geobuk', 'ybam', 'runner', 'crawler', 'mukking', 'godu', 'brute', 'spitter', 'bloater', 'johnson', 'dongmin', 'riot', 'tongyeongj', 'ongmani', 'jjakbural', 'sosung']; let WAVE_TYPES = onList(WAVE_ALL); // every zombie type is in play from wave 1
 function waveQueue() { const q = WAVE_TYPES.slice(); for (let i = q.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [q[i], q[j]] = [q[j], q[i]]; } return q; } // shuffled: each type shows up at least once per wave
 function pickType() {
-  if (W.queue && W.queue.length) return W.queue.pop();
+  while (W.queue && W.queue.length) { const q = W.queue.pop(); if (!offTypes.has(q) || WAVE_TYPES.indexOf(q) >= 0) return q; } // a saved queue may still hold types that were switched off since
   return WAVE_TYPES[(Math.random() * WAVE_TYPES.length) | 0];
 }
 function spawnOne() {
@@ -1968,7 +1976,7 @@ function updateWaves(dt) {
   if (isTrain()) { updateTraining(dt); return; }
   if (W.state === 'active') {
     W.spawnT -= dt;
-    const maxAlive = Math.min(30, 12 + W.n * 2);
+    const maxAlive = Math.min(100, 12 + W.n * 2);
     if (W.spawnT <= 0 && W.toSpawn > 0 && aliveCount() < maxAlive) { spawnOne(); W.toSpawn--; W.spawnT = Math.max(0.4, 1.7 - W.n * 0.09); }
     if (W.toSpawn === 0 && aliveCount() === 0) {
       W.state = 'break'; W.breakT = 7; const bonus = W.n * 200; S.score += bonus; P.hp = Math.min(maxHp(), P.hp + 25);
@@ -2251,7 +2259,7 @@ function animKneel(e, t) {
 function trainSpawn(i, avoid) {
   const sl = trainSlot(i); let ty;
   if (sbLine()) ty = TRAIN_TYPES[i]; // line mode: one of every zombie, the same one comes back in its spot
-  else do { ty = TRAIN_TYPES[(Math.random() * TRAIN_TYPES.length) | 0]; } while (ty === avoid || TR.list.some((z) => z && z.type === ty)); // no duplicate types among the 3 targets
+  else { let c = TRAIN_TYPES.filter((t) => t !== avoid && !TR.list.some((z) => z && z.type === t)); if (!c.length) c = TRAIN_TYPES.filter((t) => t !== avoid); if (!c.length) c = TRAIN_TYPES; ty = c[(Math.random() * c.length) | 0]; } // no duplicate types among the 3 targets (when enough are switched on)
   const e = makeZombie(ty, sl[0], sl[1], true); e.train = true; e.slot = i; e.hits = 0; e.rot = sl[2]; e.root.rotation.y = sl[2];
   if (!e.cfg.crawl && !e.cfg.bull) { const dy = 0.36, h = e.cfg.hit; e.cfg = Object.assign({}, e.cfg, { hit: { head: [h.head[0], h.head[1] - dy, h.head[2]], body: h.body.map((b) => [b[0], b[1] - dy, b[2]]) } }); e.kneel = true; e.tag.position.y -= dy / (e.cfg.sy || 1); }
   if (e.cfg.lightning && Math.random() < e.cfg.lightning) e.zapT = rand(1.2, 3.2); // practice modes: 50% chance it gets struck shortly after appearing
@@ -2487,13 +2495,17 @@ function renderVillains() {
     const li = document.createElement('li'), src = zombieThumb(t);
     let pic; if (src) { pic = document.createElement('img'); pic.src = src; pic.alt = ''; } else { pic = document.createElement('span'); pic.className = 'vt'; }
     const nm = document.createElement('span'); nm.className = 'vn vedit'; nm.textContent = ZOMBIE_NAMES[t] || t; nm.title = 'Tap to rename'; nm.addEventListener('click', () => startRename(nm, t));
+    const ck = document.createElement('input'); ck.type = 'checkbox'; ck.className = 'vck'; ck.checked = !offTypes.has(t); ck.title = 'Show this villain in the game';
+    ck.addEventListener('change', () => { if (!ck.checked && VILLAIN_ORDER.filter((q) => TYPES[q] && !offTypes.has(q)).length <= 1) { ck.checked = true; $('vHint').textContent = 'At least one villain has to stay on'; return; } setVillainOn(t, ck.checked); li.classList.toggle('voff', !ck.checked); vCount(); });
+    const nr = document.createElement('div'); nr.className = 'vnr'; nr.append(ck, nm); li.classList.toggle('voff', offTypes.has(t));
     const st = document.createElement('span'); st.className = 'vs'; st.textContent = 'HP ' + c.hp + ' \u00b7 SPD ' + c.speed.toFixed(1) + ' \u00b7 ' + (c.explode ? 'BLAST ' + c.explode.dmg : 'DMG ' + c.dmg);
     const d = document.createElement('small'); d.textContent = VILLAIN_NOTES[t] || '';
-    li.append(pic, nm, st, d); ul.appendChild(li);
+    li.append(pic, nr, st, d); ul.appendChild(li);
   });
-  $('vHint').textContent = 'Scroll to see all ' + n + ' villains \u00b7 Tap a name to rename it';
-  ul.scrollTop = 0;
+  vCount(); ul.scrollTop = 0;
 }
+function vCount() { const n = VILLAIN_ORDER.filter((q) => TYPES[q]).length, on = VILLAIN_ORDER.filter((q) => TYPES[q] && !offTypes.has(q)).length; $('vHint').textContent = on + ' of ' + n + ' villains on \u00b7 Untick one to remove it from the game \u00b7 Tap a name to rename'; }
+function setVillainOn(t, on) { if (on) offTypes.delete(t); else offTypes.add(t); saveOff(); TRAIN_TYPES = onList(TRAIN_ALL); MENU_TYPES = onList(MENU_ALL); WAVE_TYPES = onList(WAVE_ALL); }
 function openVillains() { villainsOpen = true; $('villains').hidden = false; renderVillains(); }
 function closeVillains() { villainsOpen = false; $('villains').hidden = true; }
 {
@@ -2502,6 +2514,7 @@ function closeVillains() { villainsOpen = false; $('villains').hidden = true; }
   vb.addEventListener('click', openVillains); mapBox.insertBefore(vb, mapBox.querySelector('[data-id="sandbag"]')); // Villain List sits before Sandbag
 }
 $('vClose').addEventListener('click', closeVillains);
+$('vAll').addEventListener('click', () => { if (!offTypes.size) return; offTypes.clear(); saveOff(); TRAIN_TYPES = TRAIN_ALL.slice(); MENU_TYPES = MENU_ALL.slice(); WAVE_TYPES = WAVE_ALL.slice(); renderVillains(); });
 $('vReset').addEventListener('click', () => { if (!Object.keys(customNames).length) return; if (confirm('Reset all villain names to the originals?')) { resetZombieNames(); renderVillains(); } });
 $('vList').addEventListener('touchmove', (e) => { e.stopPropagation(); }, { passive: true });
 addEventListener('keydown', (e) => { if (e.key === 'Escape' && villainsOpen) closeVillains(); });
