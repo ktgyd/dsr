@@ -115,15 +115,13 @@ body.training #hud .wave, body.training #hud .score, body.training #hud .hp, bod
 body.training #hud .ammo { top: 0 !important; right: 0 !important; bottom: auto !important; padding: inherit !important; }
 /* touch HUD, top-left column (portrait + landscape): pause / sound / save buttons, then LV, then health, then the minimap. Row heights are fixed so the minimap can sit right under the health bar. */
 .touchmode { --tb-top: calc(max(12px, env(safe-area-inset-top, 0px)) + 46px); --tb-left: max(12px, env(safe-area-inset-left, 0px)); }
-.touchmode #hud .hp { bottom: auto; top: var(--tb-top); left: var(--tb-left); padding: 0; width: 180px; }
-.touchmode #hud .hp .lv { height: 14px; margin: 0 0 4px; line-height: 14px; }
-.touchmode #hud .hp small { line-height: 14px; }
-.touchmode #hud .hp b { display: block; font-size: 34px; line-height: 34px; }
-.touchmode #hpbar { height: 6px; margin-top: 4px; }
-#mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px); width: 112px; height: auto; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.35); display: none; pointer-events: none; }
-#mm.on { display: block; }
-.touchmode #mm { left: var(--tb-left); top: calc(var(--tb-top) + 84px); width: 92px; }
-body.training.touchmode #mm { top: var(--tb-top); }
+.touchmode #hud .hp { bottom: auto; top: var(--tb-top); left: var(--tb-left); padding: 0; width: 230px; }
+#hud .hp .lv { height: 18px; margin: 0 0 5px; line-height: 18px; font-size: 16px; gap: 10px; }
+#hud .hp small { line-height: 18px; font-size: 14px; }
+#hud .hp b { display: block; font-size: 46px; line-height: 46px; }
+#hpbar { height: 8px; margin-top: 5px; }
+#mm { left: var(--tb-left); top: calc(var(--tb-top) + 112px); width: 128px; }
+body.training #mm { top: var(--tb-top); }
 .touchmode #hint, .touchmode #xh .t, .touchmode #xh .b { display: none; }
 
 /* screens */
@@ -281,6 +279,7 @@ html, body { overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
       <li><kbd>1</kbd>&ndash;<kbd>5</kbd>Weapons</li>
       <li><kbd>Space</kbd>Jump</li>
       <li><kbd>F</kbd>Flashlight</li>
+      <li><kbd>V</kbd>Turn around</li>
     </ul>
     </div>
   </div>
@@ -2186,6 +2185,7 @@ addEventListener('keydown', (e) => {
   if (k === 'p') { setPause(!paused); return; }
   if (k === 'r') startReload(); if (k === '1') swapTo(0); if (k === '2') swapTo(1); if (k === '3') swapTo(2); if (k === '4') swapTo(3); if (k === '5') swapTo(4); if (k === '6') swapTo(5);
   if (k === 'f') { torchOn = !torchOn; torch.visible = torchOn; } if (k === 'm') { setMuted(!muted); }
+  if (k === 'v' && !paused) turnRem = Math.PI; // V = turn around 180 degrees (same as double-tapping JUMP on a phone)
 });
 addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseFire = false; mouseAds = false; });
