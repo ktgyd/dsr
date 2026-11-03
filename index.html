@@ -2056,7 +2056,7 @@ function updateWaves(dt) {
   if (isTrain()) { updateTraining(dt); return; }
   if (W.state === 'active') {
     W.spawnT -= dt;
-    const maxAlive = Math.min(100, 12 + W.n * 2);
+    const maxAlive = Math.min(50, 12 + W.n * 2);
     if (W.spawnT <= 0 && W.toSpawn > 0 && aliveCount() < maxAlive) { spawnOne(); W.toSpawn--; W.spawnT = Math.max(0.4, 1.7 - W.n * 0.09); }
     if (W.toSpawn === 0 && aliveCount() === 0) {
       W.state = 'break'; W.breakT = 7; const bonus = W.n * 200; S.score += bonus; P.hp = Math.min(maxHp(), P.hp + 25);
