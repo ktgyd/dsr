@@ -122,7 +122,7 @@ body.training #hud .ammo { top: 0 !important; right: 0 !important; bottom: auto 
 .touchmode #hud .hp small { line-height: 14px; }
 .touchmode #hud .hp b { display: block; font-size: 34px; line-height: 34px; }
 .touchmode #hpbar { height: 6px; margin-top: 4px; }
-#mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px); width: 112px; height: auto; background: rgba(8,10,14,.86); border: 1px solid rgba(255,255,255,.65); display: none; pointer-events: none; }
+#mm { position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); top: calc(max(12px, env(safe-area-inset-top, 0px)) + 52px); width: 112px; height: auto; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.35); display: none; pointer-events: none; }
 #mm.on { display: block; }
 .touchmode #mm { left: var(--tb-left); top: calc(var(--tb-top) + 84px); width: 92px; }
 body.training.touchmode #mm { top: var(--tb-top); }
@@ -1068,9 +1068,9 @@ function buildTraining() {
   [-12, 0, 12].forEach((z) => { const l = new THREE.PointLight(0xfff0dd, 1.1, 34, 2); l.position.set(0, 3.1, z); world.add(l); });
 }
 
-/* ---- map: Injae Hall (practice): a small auditorium, 33 x 26.6 m with a 9 m ceiling. You start on the back landing (3 m above the floor) and look down over 9 stepped rows of seats (2 blocks of 16 seats per row = 288 seats, in 3 zones with 2 cross aisles) to a wide dark-wood stage with a screen, wooden steps in the centre and at both ends, and a host's lectern with a microphone on the right. Every wall is wood. ---- */
+/* ---- map: Injae Hall (practice): a small auditorium, 30 x 26.6 m with a 9 m ceiling. You start on the back landing (3 m above the floor) and look down over 9 stepped rows of seats (2 blocks of 16 seats per row = 288 seats, in 3 zones with 2 cross aisles) to a wide dark-wood stage with a screen, wooden steps in the centre and at both ends, and a host's lectern with a microphone on the right. Every wall is wood. ---- */
 function buildHall() {
-  const H = 9, XS = 16.5, ZS = 13.3; // inner room 33 m wide x 26.6 m long
+  const H = 9, XS = 15, ZS = 13.3; // inner room 30 m wide x 26.6 m long
   const woodTex = ctex(256, 256, (x, w, h) => { // vertical wood panelling: planks with grain and thin seams
     x.fillStyle = '#7b4e2c'; x.fillRect(0, 0, w, h);
     for (let i = 0; i < 8; i++) { x.fillStyle = 'rgba(' + (i % 2 ? '0,0,0,.10' : '255,200,140,.07') + ')'; x.fillRect(i * 32, 0, 32, h); }
@@ -1090,27 +1090,30 @@ function buildHall() {
     if (zone < 2) { hh += 0.25; decks.push([zc0, zc0 + 1.6, hh, -1]); zc0 += 1.6; }
   }
   hh += 0.25; decks.push([zc0, ZS, hh, -1]); // landing: hh ends at HALL.top
-  const BX = [-7.1, 7.1], seat = 0x8a2a35; // two blocks of 16 seats, 0.7 m apart; aisles: 3 m in the centre, 3.8 m at each end
+  const BX = [-6.8, 6.8], seat = 0x8cd23c, seatBack = 0x74492a; // seat cushion + the backrest's front pad (the parts that touch your body) are light green, the back shell is the wall's dark brown; two blocks of 16 seats, 0.7 m apart; aisles: 2.4 m in the centre, 2.6 m at each end
   decks.forEach((d) => {
     const dz = d[1] - d[0], zc = (d[0] + d[1]) / 2, h = d[2];
     const ct = carpetTex.clone(); ct.needsUpdate = true; ct.repeat.set(XS * 2 / 6.2, dz / 6.2); // same carpet as the ground of the office maps
     mk(new THREE.BoxGeometry(XS * 2, h, dz), stdMat({ map: ct, envMapIntensity: 0.25 }), 0, h / 2, zc); addCol(0, zc, XS * 2, dz, h, true);
     if (d[3] < 0) return;
     BX.forEach((cx) => {
-      for (let k = 0; k < 16; k++) { const x = cx + (k - 7.5) * 0.7; B.add(x, h + 0.45, zc - 0.05, 0.56, 0.07, 0.5, seat); B.add(x, h + 0.78, zc + 0.22, 0.56, 0.55, 0.07, seat); B.add(x, h + 0.22, zc, 0.08, 0.44, 0.08, 0x1b1e23); }
+      for (let k = 0; k < 16; k++) { const x = cx + (k - 7.5) * 0.7; B.add(x, h + 0.45, zc - 0.05, 0.56, 0.07, 0.5, seat); B.add(x, h + 0.78, zc + 0.235, 0.56, 0.55, 0.04, seatBack); B.add(x, h + 0.78, zc + 0.2, 0.5, 0.49, 0.03, seat); B.add(x, h + 0.22, zc, 0.08, 0.44, 0.08, 0x1b1e23); }
       addCol(cx, zc + 0.03, 11.2, 0.55, h + 0.55, true); // the seats of one row block: you can jump up onto them
     });
   });
   // --- stage: dark brown wood, 1 m high, the full width of the hall (2.5 x the old width). The screen keeps its size ---
-  const SW = XS * 2 - 0.2, SZ = ZS - 3, SD = 6; // stage x -16.4..16.4, z -13.3..-7.3
+  const SW = XS * 2 - 0.2, SZ = ZS - 3, SD = 6; // stage x -14.8..14.8, z -13.3..-7.3
   mk(new THREE.BoxGeometry(SW, HALL.stageH, SD), wood, 0, HALL.stageH / 2, -ZS + SD / 2); addCol(0, -ZS + SD / 2, SW, SD, HALL.stageH, true);
   mk(new THREE.BoxGeometry(SW + 0.1, 0.12, 0.1), woodD, 0, HALL.stageH - 0.06, -ZS + SD + 0.04, 0, false);
-  [[0, 3.0], [-14.6, 2.0], [14.6, 2.0]].forEach((st) => { // wooden steps up to the stage: one set in the middle and one at each end, 3 treads of 0.25 m, in line with the aisles
+  [[0, 3.0], [-13.7, 2.0], [13.7, 2.0]].forEach((st) => { // wooden steps up to the stage: one set in the middle and one at each end, 3 treads of 0.25 m, in line with the aisles
     [[0.75, -7.3, -6.8], [0.5, -6.8, -6.3], [0.25, -6.3, -5.8]].forEach((t) => { const dz = t[2] - t[1], zc = (t[1] + t[2]) / 2; mk(new THREE.BoxGeometry(st[1], t[0], dz), woodL, st[0], t[0] / 2, zc); addCol(st[0], zc, st[1], dz, t[0], true); });
   });
   const scr = stdMat({ color: 0xf4f7fb, emissive: 0x8fa5c0, emissiveIntensity: 0.55, roughness: 0.7 });
-  mk(new THREE.BoxGeometry(8.6, 4.4, 0.1), black, 0, 4.0, -ZS + 0.15, 0, false); mk(new THREE.BoxGeometry(8.4, 4.2, 0.1), scr, 0, 4.0, -ZS + 0.21, 0, false); // 4.2 m tall = about 2.5 x a person
-  const sg = new THREE.Mesh(new THREE.PlaneGeometry(5.2, 1.3), new THREE.MeshBasicMaterial({ map: signTex('INJAE HALL', '인재홀') })); sg.position.set(0, 4.1, -ZS + 0.28); world.add(sg);
+  mk(new THREE.BoxGeometry(11.22, 5.76, 0.1), black, 0, 4.78, -ZS + 0.15, 0, false); mk(new THREE.BoxGeometry(10.92, 5.46, 0.1), scr, 0, 4.78, -ZS + 0.21, 0, false); // screen 1.3x the original: 10.92 x 5.46 m, bottom edge 1.9 m above the floor, top edge 7.4 m: clear of the wood canopy (8 m)
+  const sg = new THREE.Mesh(new THREE.PlaneGeometry(6.76, 1.69), new THREE.MeshBasicMaterial({ map: signTex('INJAE HALL', '인재홀') })); sg.position.set(0, 4.88, -ZS + 0.28); world.add(sg);
+  // --- wooden canopy over the stage: a lowered wood ceiling (underside 8 m) from the back wall to just past the stage front, with a 1 m wood fascia facing the seats ---
+  { const cd = ZS - 2.5; mk(new THREE.BoxGeometry(XS * 2, 0.3, cd), wallMat(XS * 2), 0, 8.15, -ZS + cd / 2, 0, false); mk(new THREE.BoxGeometry(XS * 2, 1.0, 0.3), wallMat(XS * 2), 0, 8.5, -2.65, 0, false);
+    [-8, 0, 8].forEach((x) => [-10.5, -6, -3.5].forEach((z) => LT.add(x, 7.97, z, 2.2, 0.05, 0.6, 0xf4f1e6))); }
   // --- the host's lectern on the right end of the stage (right when you look at the stage): a one-person stand with a microphone ---
   const lx = 11.5, lz = -ZS + 3.2;
   mk(new THREE.BoxGeometry(0.7, 1.05, 0.5), woodD, lx, HALL.stageH + 0.525, lz); mk(new THREE.BoxGeometry(0.78, 0.06, 0.58), woodL, lx, HALL.stageH + 1.08, lz, 0, false);
@@ -1132,7 +1135,7 @@ const MAPS_ALL = {
   sandbag: { name: 'Sandbag Mode', tag: 'Practice \u00b7 no score \u00b7 free movement \u00b7 fists', half: 18, build: buildTraining, ground: [carpetTex, 0xffffff],
     sky: { hor: [0.07, 0.08, 0.1], top: [0.04, 0.045, 0.06], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.15, 0.95, 0.2], fog: 0.008,
     hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 },
-  hall: { name: '\uc778\uc7ac\ud640 \ubaa8\ub4dc', tag: 'Practice \u00b7 no score \u00b7 auditorium', half: 14, xs: 16.5, build: buildHall, ground: [carpetTex, 0xffffff],
+  hall: { name: '\uc778\uc7ac\ud640 \ubaa8\ub4dc', tag: 'Practice \u00b7 no score \u00b7 auditorium', half: 14, xs: 15, build: buildHall, ground: [carpetTex, 0xffffff],
     sky: { hor: [0.07, 0.08, 0.1], top: [0.04, 0.045, 0.06], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.15, 0.95, 0.2], fog: 0.008,
     hemi: [0xdfe8ff, 0x6b6f78, 0.95], sun: [0xcfd8ff, 0.45], exp: 1.1 },
   office: { name: 'DSR 19th Floor', tag: 'Night · office floor', half: 44, build: buildOffice, ground: [carpetTex, 0xffffff],
