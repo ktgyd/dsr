@@ -1135,7 +1135,7 @@ const MAPS_ALL = {
   sandbag: { name: 'Sandbag Mode', tag: 'Practice \u00b7 no score \u00b7 free movement \u00b7 fists', half: 18, build: buildTraining, ground: [carpetTex, 0xffffff],
     sky: { hor: [0.07, 0.08, 0.1], top: [0.04, 0.045, 0.06], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.15, 0.95, 0.2], fog: 0.008,
     hemi: [0xdfe8ff, 0x6b6f78, 0.85], sun: [0xcfd8ff, 0.45], exp: 1.1 },
-  hall: { name: '\uc778\uc7ac\ud640 \ubaa8\ub4dc', tag: 'Practice \u00b7 no score \u00b7 auditorium', half: 14, xs: 15, build: buildHall, ground: [carpetTex, 0xffffff],
+  hall: { name: '\uc778\uc7ac\ud640', tag: 'Practice \u00b7 no score \u00b7 auditorium', half: 14, xs: 15, build: buildHall, ground: [carpetTex, 0xffffff],
     sky: { hor: [0.07, 0.08, 0.1], top: [0.04, 0.045, 0.06], glow: [0, 0, 0], disc: [0, 0, 0], stars: 0, glowAmt: 0, haze: 0 }, dir: [0.15, 0.95, 0.2], fog: 0.008,
     hemi: [0xdfe8ff, 0x6b6f78, 0.95], sun: [0xcfd8ff, 0.45], exp: 1.1 },
   office: { name: 'DSR 19th Floor', tag: 'Night · office floor', half: 44, build: buildOffice, ground: [carpetTex, 0xffffff],
@@ -2397,7 +2397,7 @@ SURVIVAL_MAPS.forEach((id) => { // map types shown under the first (DSR) button
   b.innerHTML = '<b>' + MAPS_ALL[id].name + '</b><small>' + MAPS_ALL[id].tag + '</small>';
   b.addEventListener('click', () => selectMap(id, true)); sbBox.appendChild(b);
 });
-[['training', '\uae30\uc874 \ud2b8\ub808\uc774\ub2dd', 'Original \u00b7 3 random zombies ahead'], ['hall', '\uc778\uc7ac\ud640 \ubaa8\ub4dc', 'Auditorium \u00b7 walk around']].forEach((o) => { // the two Training options, shown under the Training button
+[['training', '\ud68c\uc758\uc2e4', 'Meeting room \u00b7 3 random zombies ahead'], ['hall', '\uc778\uc7ac\ud640', 'Auditorium \u00b7 walk around']].forEach((o) => { // the two Training options, shown under the Training button
   const b = document.createElement('button'); b.type = 'button'; b.className = 'mapb'; b.dataset.id = o[0]; b.dataset.kind = 'tmap'; b.setAttribute('role', 'radio');
   b.innerHTML = '<b>' + o[1] + '</b><small>' + o[2] + '</small>';
   b.addEventListener('click', () => selectMap(o[0], true)); sbBox.appendChild(b);
